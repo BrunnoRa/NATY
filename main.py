@@ -23,12 +23,16 @@ def main() -> int:
     parser.add_argument("--cli", action="store_true", help="executa sem interface gráfica")
     parser.add_argument("--command", help="executa um comando e encerra")
     parser.add_argument("--no-tray", action="store_true", help="desativa o ícone de bandeja")
+    parser.add_argument("--smoke-gui", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     assistant = NatyAssistant(Settings.load())
     if args.cli or args.command: return cli(assistant, args.command)
     try:
         from ui.main_window import MainWindow
-        MainWindow(assistant, use_tray=not args.no_tray).run(); return 0
+        window = MainWindow(assistant, use_tray=not args.no_tray)
+        if args.smoke_gui:
+            window.root.after(2500, window.exit)
+        window.run(); return 0
     except Exception as exc:
         assistant.logger.exception("Falha ao iniciar interface")
         print(f"Não foi possível iniciar a interface: {exc}")

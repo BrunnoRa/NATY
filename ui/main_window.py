@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from activation.hotkey import GlobalHotkey
+from config import resource_path
 from core.assistant import NatyAssistant
 from core.models import AppState
 from core.performance import PerformanceMonitor
@@ -35,6 +36,12 @@ class MainWindow:
         self.assistant, self.settings = assistant, assistant.settings
         self.root = tk.Tk()
         self.root.title("Naty · agente pessoal local")
+        try:
+            self.root.iconbitmap(default=str(resource_path("assets", "naty.ico")))
+            self._window_icon = tk.PhotoImage(file=str(resource_path("assets", "naty_128.png")))
+            self.root.iconphoto(True, self._window_icon)
+        except tk.TclError:
+            self._window_icon = None
         self.root.geometry("1120x720")
         self.root.minsize(860, 580)
         self.root.configure(bg=self.BG)
@@ -42,6 +49,7 @@ class MainWindow:
         self._closing = False
         self._last_state = AppState.IDLE
         self._listening_from_mini = False
+        self._voice_turn_active = False
         self.performance = PerformanceMonitor()
         self._configure_style()
         self._build()
@@ -213,7 +221,10 @@ class MainWindow:
             self.entry.delete(0, "end")
             self.submit_text(text)
 
-    def submit_text(self, text: str, show_window: bool = True) -> None:
+    def submit_text(self, text: str, show_window: bool = True, from_voice: bool = False) -> None:
+        if not from_voice and getattr(self, "voice", None) and self.voice.session.active:
+            self.voice.stop_session()
+        self._voice_turn_active = from_voice
         if show_window:
             self.show()
         self._append("user", "Você", text)
@@ -228,14 +239,26 @@ class MainWindow:
 
     def _finish_response(self, response: str) -> None:
         self._append("naty", "Naty", response)
-        self.mini.set_status("Concluído")
-        self.mini.after(1600, self.mini.hide)
         self._set_state(AppState.IDLE)
         self._refresh_dashboard()
-        if self.settings.tts_enabled:
+        spoken = response.split("\n\nFontes:", 1)[0]
+        if self._voice_turn_active and self.voice.session.active:
+            self.mini.set_status(response[:140])
+            self.voice.respond_and_follow_up(
+                spoken,
+                lambda text: self.root.after(0, self._voice_followup, text),
+                lambda error: self.root.after(0, self._voice_error, error),
+                lambda: self.root.after(0, self._voice_session_closed),
+                lambda state: self.root.after(0, self._voice_session_state, state),
+            )
+        elif self.settings.tts_enabled:
+            self.mini.set_status("Concluído")
+            self.mini.after(1600, self.mini.hide)
             self._set_state(AppState.SPEAKING)
-            spoken = response.split("\n\nFontes:", 1)[0]
             self.voice.speak_async(spoken, lambda: self.root.after(0, self._set_state, AppState.IDLE))
+        else:
+            self.mini.set_status("Concluído")
+            self.mini.after(1600, self.mini.hide)
 
     def _set_state(self, state: AppState) -> None:
         self._last_state = state
@@ -250,20 +273,38 @@ class MainWindow:
             self._append("naty", "Naty", "O reconhecimento de voz está desativado. Abra Voz para configurar.")
             return
         self._set_state(AppState.LISTENING)
-        self.mini.set_status("Ouvindo…")
-        self.voice.listen_async(
+        self.mini.set_status("◉ Ouvindo…")
+        self.voice.start_session(
             lambda text: self.root.after(0, self._heard, text),
             lambda error: self.root.after(0, self._voice_error, error),
-            timeout=8,
         )
 
     def _heard(self, text: str) -> None:
         if text:
-            self.submit_text(text, show_window=not self._listening_from_mini)
+            self.mini.set_status(f"Você: {text}")
+            self.submit_text(text, show_window=not self._listening_from_mini, from_voice=True)
         else:
             self._voice_error("Não detectei fala.")
 
+    def _voice_followup(self, text: str) -> None:
+        self.mini.set_status(f"Você: {text}")
+        self.submit_text(text, show_window=not self._listening_from_mini, from_voice=True)
+
+    def _voice_session_state(self, state: str) -> None:
+        if state == "speaking":
+            self._set_state(AppState.SPEAKING); self.mini.set_status("◎ Falando…")
+        elif state == "listening":
+            self._set_state(AppState.LISTENING); self.mini.set_status("◉ Pode continuar…")
+
+    def _voice_session_closed(self) -> None:
+        self._voice_turn_active = False
+        self._set_state(AppState.IDLE)
+        self.mini.set_status("○ Sessão encerrada")
+        self.mini.after(1200, self.mini.hide)
+
     def _voice_error(self, error: str) -> None:
+        self.voice.stop_session()
+        self._voice_turn_active = False
         self._set_state(AppState.ERROR)
         self.mini.set_status(error)
         self._append("naty", "Naty", error)
@@ -298,7 +339,7 @@ class MainWindow:
         checks = [
             ("Banco local", True),
             ("Obsidian", self.assistant.obsidian.available),
-            ("Voz STT", bool(self.settings.vosk_model_path)),
+            ("Voz STT", self.voice.stt.available()),
             ("IA local", self.assistant.ai.is_available()),
             ("Google", self.settings.google_enabled),
         ]
@@ -359,6 +400,7 @@ class MainWindow:
         VoiceSettingsWindow(self.root, self.settings, self._reload_voice)
 
     def _reload_voice(self) -> None:
+        self.voice.stop_session()
         self.voice = VoiceSessionManager(self.settings)
         self._refresh_dashboard()
 
@@ -457,6 +499,7 @@ class MainWindow:
             return
         self._closing = True
         self.scheduler.stop()
+        self.voice.stop_session()
         self.hotkey.stop()
         self.tray.stop()
         self.assistant.close()

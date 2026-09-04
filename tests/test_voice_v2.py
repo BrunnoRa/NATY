@@ -1,12 +1,16 @@
 import json
+from array import array
 from pathlib import Path
 import sys
+import threading
 import types
 import wave
 from unittest.mock import patch
 
 from tests.base import TempDatabaseTest
-from voice.devices import list_microphones, validate_microphone
+from voice.devices import audio_level, friendly_audio_error, list_microphones, validate_microphone
+from voice.audio_processing import AutomaticGain
+from voice.manager import VoiceSessionManager
 from voice.sapi_tts import SapiTTS
 from voice.vosk_stt import VoskSTT
 
@@ -42,3 +46,45 @@ class VoiceV2Tests(TempDatabaseTest):
         sounddevice = types.SimpleNamespace()
         with patch.dict(sys.modules, {"vosk": vosk, "sounddevice": sounddevice}):
             self.assertEqual(VoskSTT(model).transcribe_wav(wav_path), "teste local")
+
+    def test_friendly_microphone_diagnostics(self):
+        self.assertIn("Privacidade", friendly_audio_error("Unanticipated host error -9999"))
+        self.assertAlmostEqual(audio_level(b"\0\0" * 20), 0.0)
+
+    def test_automatic_gain_amplifies_low_voice_without_amplifying_silence(self):
+        processor = AutomaticGain(max_gain=12, enabled=True)
+        silence, silence_info = processor.process(array("h", [0] * 100).tobytes())
+        quiet, quiet_info = processor.process(array("h", [120] * 100).tobytes())
+        self.assertEqual(audio_level(silence), 0.0)
+        self.assertGreater(quiet_info.output_level, quiet_info.raw_level * 4)
+        self.assertLessEqual(quiet_info.gain, 12)
+
+    def test_voice_session_keeps_followup_context_until_timeout(self):
+        class STT:
+            _model = None
+            def __init__(self): self.responses = iter(("primeira pergunta", "e depois", "")); self.unloads = 0
+            def listen_once(self, timeout, on_level=None):
+                if on_level: on_level(0.2)
+                return next(self.responses)
+            def unload(self): self.unloads += 1
+
+        class TTS:
+            def __init__(self): self.spoken = []
+            def speak(self, text): self.spoken.append(text)
+
+        stt, tts = STT(), TTS()
+        manager = VoiceSessionManager(self.settings(tts_enabled=True, conversation_followup_seconds=8), stt=stt, tts=tts)
+        first, followup, closed = threading.Event(), threading.Event(), threading.Event()
+        heard = []
+        manager.start_session(lambda text: (heard.append(text), first.set()), self.fail)
+        self.assertTrue(first.wait(1))
+        manager.respond_and_follow_up("resposta um", lambda text: (heard.append(text), followup.set()), self.fail, closed.set)
+        self.assertTrue(followup.wait(1))
+        self.assertTrue(manager.session.active)
+        self.assertEqual(manager.session.turns, 2)
+        manager.respond_and_follow_up("resposta dois", heard.append, self.fail, closed.set)
+        self.assertTrue(closed.wait(1))
+        self.assertFalse(manager.session.active)
+        self.assertEqual(heard, ["primeira pergunta", "e depois"])
+        self.assertEqual(tts.spoken, ["resposta um", "resposta dois"])
+        self.assertEqual(stt.unloads, 1)

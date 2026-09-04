@@ -24,7 +24,7 @@ A sequência segue o que foi útil em JARVIS: planejar/rotear, selecionar capaci
 - `conversation/`: diálogo determinístico e fallback de IA;
 - `research/`: `ResearchProvider`, DDGS, Perplexity opcional, leitura limitada, claims e fallback;
 - `connectors/`: registro preguiçoso, Google OAuth, Gmail e Calendar;
-- `voice/`: Vosk, SAPI e interfaces para providers;
+- `voice/`: Vosk, SAPI/COM, diagnóstico de dispositivos e `VoiceSession` com janela configurável de continuação;
 - `scheduler/`: lembretes, briefing/revisão opt-in e follow-up anti-spam;
 - `ui/`: dashboard, HUD, onboarding, voz e grafo sem expor cadeia de raciocínio.
 
@@ -36,7 +36,7 @@ O grafo contém somente relações observáveis: agente, notas, projetos, tarefa
 
 ## Carregamento sob demanda e falhas
 
-LLM, Vosk, clientes Google e chamadas web não são necessários ao startup do core. Falhas retornam mensagens locais e não comprometem tarefas. `LlamaCppProvider` verifica arquivo/RAM, usa CPU e timer de unload. Vosk pode liberar o modelo após cada uso. DDGS e conectores têm timeout/fallback. Logs são rotativos.
+LLM, Vosk, clientes Google e chamadas web não são necessários ao startup do core. Falhas retornam mensagens locais e não comprometem tarefas. `LlamaCppProvider` verifica arquivo/RAM, usa CPU e timer de unload. Vosk tenta 16 kHz e recorre ao sample rate nativo quando o driver exigir. O PCM16 passa por ganho automático limitado, com noise floor, antes do reconhecimento; o modelo fica carregado durante a `VoiceSession` e pode ser liberado ao encerrá-la. A sessão falada mantém o mesmo `SessionContext` durante follow-ups e encerra no timeout. DDGS e conectores têm timeout/fallback. Logs são rotativos.
 
 ## Confirmações
 

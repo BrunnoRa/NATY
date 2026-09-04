@@ -1,10 +1,12 @@
 .venv/
+.build-venv/
 __pycache__/
 *.py[cod]
 data/
 logs/
 dist/
 build/
+installer/
 models/
 credentials*.json
 token*.json

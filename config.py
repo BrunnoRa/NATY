@@ -14,6 +14,21 @@ def app_root() -> Path:
     return Path(__file__).resolve().parent
 
 
+def resource_path(*parts: str) -> Path:
+    """Resolve um recurso tanto no código-fonte quanto no bundle do PyInstaller."""
+    bundle_root = Path(getattr(sys, "_MEIPASS", app_root()))
+    return bundle_root.joinpath(*parts)
+
+
+def user_data_root() -> Path:
+    """Mantém dados mutáveis fora da instalação quando a Naty está empacotada."""
+    if getattr(sys, "frozen", False) and os.name == "nt":
+        local_app_data = os.environ.get("LOCALAPPDATA")
+        if local_app_data:
+            return Path(local_app_data) / "NATY"
+    return app_root()
+
+
 @dataclass(slots=True)
 class Settings:
     first_run_completed: bool = False
@@ -27,9 +42,12 @@ class Settings:
     stt_provider: str = "vosk"
     vosk_model_path: str = ""
     microphone_device: int = -1
+    microphone_gain: float = 12.0
+    automatic_gain_enabled: bool = True
     voice: str = ""
     voice_rate: int = 0
     voice_volume: int = 100
+    conversation_followup_seconds: int = 8
     unload_stt_after_use: bool = True
     ai_enabled: bool = False
     ai_model_path: str = ""
@@ -68,7 +86,7 @@ class Settings:
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> "Settings":
-        cfg_path = Path(path) if path else app_root() / "config.toml"
+        cfg_path = Path(path) if path else user_data_root() / "config.toml"
         settings = cls()
         if cfg_path.exists():
             raw = tomllib.loads(cfg_path.read_text(encoding="utf-8"))
@@ -77,11 +95,15 @@ class Settings:
             for key, value in raw.items():
                 if key in allowed:
                     setattr(settings, key, value)
+        if not settings.vosk_model_path:
+            bundled_model = resource_path("models", "vosk", "vosk-model-small-pt-0.3")
+            if bundled_model.is_dir():
+                settings.vosk_model_path = str(bundled_model)
         return settings
 
     def resolve_path(self, value: str) -> Path:
         path = Path(os.path.expandvars(value)).expanduser()
-        return path if path.is_absolute() else app_root() / path
+        return path if path.is_absolute() else user_data_root() / path
 
     @property
     def database_path(self) -> Path:
@@ -106,7 +128,8 @@ class Settings:
         return asdict(self)
 
     def save(self, path: str | Path | None = None) -> Path:
-        cfg_path = Path(path) if path else app_root() / "config.toml"
+        cfg_path = Path(path) if path else user_data_root() / "config.toml"
+        cfg_path.parent.mkdir(parents=True, exist_ok=True)
         lines = ["[naty]"]
         for key, value in self.as_dict().items():
             if isinstance(value, bool): encoded = "true" if value else "false"

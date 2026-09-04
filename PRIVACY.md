@@ -2,7 +2,7 @@
 
 ## Local por padrão
 
-Tarefas, projetos, lembretes, agenda local, listas, notas, memórias, índice do Vault e histórico de ações ficam em `data/naty.db`. Configurações ficam em `config.toml`. O áudio do push-to-talk é processado em memória pelo Vosk e não é salvo. O contexto mantém no máximo 12 turnos em RAM; a conversa integral não é persistida.
+Tarefas, projetos, lembretes, agenda local, listas, notas, memórias, índice do Vault e histórico de ações ficam em `data/naty.db`. Configurações ficam em `config.toml`. O áudio da sessão de voz é processado em memória pelo Vosk e não é salvo; nível e waveform são efêmeros. O contexto mantém no máximo 12 turnos em RAM, inclusive durante continuações por voz; a conversa integral não é persistida.
 
 ## Quando dados saem do computador
 

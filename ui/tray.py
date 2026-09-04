@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import threading
 
+from config import resource_path
+
 
 class TrayIcon:
     def __init__(self, on_open, on_listen, on_task, on_list, on_settings, on_exit):
@@ -13,8 +15,12 @@ class TrayIcon:
             import pystray
             from PIL import Image, ImageDraw
         except ImportError: return False
-        image = Image.new("RGBA", (64, 64), (12, 18, 28, 255)); draw = ImageDraw.Draw(image)
-        draw.ellipse((10, 10, 54, 54), outline=(86, 215, 230, 255), width=5); draw.ellipse((27, 27, 37, 37), fill=(86, 215, 230, 255))
+        icon_path = resource_path("assets", "naty_128.png")
+        if icon_path.is_file():
+            image = Image.open(icon_path).convert("RGBA")
+        else:
+            image = Image.new("RGBA", (64, 64), (12, 18, 28, 255)); draw = ImageDraw.Draw(image)
+            draw.ellipse((10, 10, 54, 54), outline=(86, 215, 230, 255), width=5); draw.ellipse((27, 27, 37, 37), fill=(86, 215, 230, 255))
         o, l, t, li, s, e = self.callbacks
         menu = pystray.Menu(
             pystray.MenuItem("Abrir Naty", lambda: o(), default=True),

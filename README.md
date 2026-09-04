@@ -2,12 +2,21 @@
 
 Naty é uma agente pessoal local para Windows 11. O núcleo funciona sem LLM e sem nuvem: tarefas, projetos, listas, lembretes, agenda local, notas, memória consentida, planejamento e busca no Vault usam regras, SQLite e FTS5. IA local, voz, pesquisa web e Google Workspace são camadas opcionais e isoladas.
 
-## Requisitos e instalação
+## Aplicativo Windows
 
-- Windows 11;
-- Python 3.11 ou mais recente com Tcl/Tk;
-- aproximadamente 100 MB para o núcleo;
-- internet apenas para instalar pacotes/modelos, pesquisar ou usar integrações autorizadas.
+Para uso normal, abra o atalho **Naty** no Desktop ou no menu Iniciar. A instalação por usuário não exige privilégios administrativos, inclui o modelo Vosk local e mantém `Iniciar NATY junto com Windows` desligado por padrão. Configurações, banco e logs ficam em `%LOCALAPPDATA%\NATY`, separados dos arquivos do programa.
+
+O pacote distribuível é `installer/Naty-Windows-2.1.0.zip`: extraia e execute `Instalar Naty.cmd`. A desinstalação fica no menu Iniciar e remove somente a instalação e os dados próprios da Naty; o Vault do Obsidian não é removido ou alterado.
+
+Para reconstruir o pacote com Python 3.11 ou mais recente e Tcl/Tk:
+
+```powershell
+py -3.12 -m venv .build-venv
+.\.build-venv\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-voice.txt
+.\.build-venv\Scripts\python.exe -m scripts.build_windows
+```
+
+## Desenvolvimento
 
 Execute `setup_naty.bat` e depois `run_naty.bat`. Para desenvolvimento:
 
@@ -66,14 +75,25 @@ Para validar e importar de forma reproduzível o Vault configurado sem criar nem
 
 ## Voz local
 
-SAPI é o TTS padrão e não requer download. A tela **Voz** lista microfones e vozes, testa cada um e permite ajustar velocidade e volume. Para STT pt-BR:
+SAPI é o TTS padrão e não requer download. A tela **Configurações > Voz > Diagnóstico** lista todas as entradas, identifica o dispositivo padrão, canais, sample rate e API do driver, mostra nível/waveform em tempo real, status do Vosk, última transcrição e latência. O teste faz uma contagem de 2 segundos e ouve por até 7 segundos, sempre exibindo um motivo provável quando a captura falha. A seleção do microfone é persistida explicitamente.
+
+As vozes SAPI exibem nome, idioma e gênero; a Naty prioriza uma voz feminina pt-BR. Se ela não estiver instalada, a própria tela mostra como adicionar gratuitamente uma voz pelo Windows. Para STT pt-BR:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-voice.txt
 setup_voice.bat
 ```
 
-O instalador informa origem, tamanho e licença antes de baixar o `vosk-model-small-pt-0.3` oficial. Vosk carrega somente durante o uso e pode ser descarregado logo depois. Wake word permanece desligado: não existe modelo “Naty” confiável incluído. Piper não faz parte da instalação base; veja `LICENSES.md`.
+O instalador informa origem, tamanho e licença antes de baixar o `vosk-model-small-pt-0.3` oficial. A captura aplica ganho automático local, limitado e configurável (`microphone_gain`), sem enviar áudio para a rede. Vosk carrega somente durante a sessão e pode ser descarregado ao encerrá-la. `conversation_followup_seconds` (5–15, padrão 8) mantém uma `VoiceSession`: após responder, a Naty volta a ouvir por alguns segundos para aceitar uma continuação sem nova hotkey. Wake word permanece desligado: não existe modelo “Naty” confiável incluído. Piper não faz parte da instalação base; veja `LICENSES.md`.
+
+Limitação objetiva: a [tabela oficial de modelos Vosk](https://alphacephei.com/vosk/models) publica erro de 68,92% no CORAA e 32,60% no Common Voice para o modelo pequeno pt. O modelo pt maior tem 1,6 GB, licença GPLv3 e requisitos muito superiores; por isso ele não é baixado ou ativado automaticamente.
+
+Diagnóstico não interativo e teste manual completo:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.smoke_voice --speak
+.\.venv\Scripts\python.exe -m scripts.smoke_voice --listen --speak
+```
 
 ## Pesquisa
 
@@ -121,11 +141,10 @@ Testes unitários não usam rede, microfone ou conta real. Smokes opcionais repo
 ## Limitações reais
 
 - o parser cobre formulações comuns em pt-BR, não linguagem arbitrária;
-- a interface precisa de Python com Tcl/Tk e validação manual na sessão desktop;
 - o smoke ao vivo do microfone abriu o dispositivo e carregou o Vosk, mas não obteve transcrição inteligível nesta sessão;
 - wake word “Naty”, Android e sincronização multi-dispositivo não estão implementados;
 - pesquisa depende da rede e das fontes; preços podem mudar;
 - Google, Perplexity e IA local permanecem desativados até configuração explícita;
-- empacotamento e assinatura do executável ainda não foram validados para distribuição.
+- o executável ainda não possui assinatura digital; o Windows pode exibir um aviso ao abrir um pacote baixado da internet;
 
 Consulte `ARCHITECTURE.md`, `SECURITY.md`, `PRIVACY.md`, `LICENSES.md` e `ROADMAP.md`.
