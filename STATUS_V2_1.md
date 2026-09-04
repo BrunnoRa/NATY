@@ -186,6 +186,7 @@ Atualizado em: 2026-09-04
 - A desinstalação remove atalhos, startup, binários e dados próprios da Naty. Ela não referencia nem remove o Vault do Obsidian.
 - A configuração pessoal `config.toml` não entra no pacote. Em uma instalação nova, o modelo Vosk incluído é descoberto automaticamente.
 - O segundo logo fornecido pelo usuário foi adotado como identidade oficial em `assets/naty_source.png`. Foram gerados PNGs 16/32/48/128/256 com cantos transparentes e ICO multirresolução; aplicados à janela, tray, executável e atalhos.
+- Após o Windows manter o ícone antigo no Desktop, o instalador foi corrigido para apontar os atalhos diretamente a `_internal/assets/naty.ico` e solicitar a atualização do cache de ícones; Desktop e menu Iniciar foram recriados e validados com esse caminho.
 
 ### Arquivos alterados/criados
 
@@ -208,7 +209,7 @@ Atualizado em: 2026-09-04
 
 ### Benchmark/artefato
 
-- ZIP instalável após adoção do logo oficial: 77,41 MiB; SHA-256 `C1BD0BDC691233888408245DD43F73B07DE6326275B85C97FDB7905D60E5B058`.
+- ZIP instalável após a correção final do atalho: 77,41 MiB; SHA-256 `B72ACDC7B24725E9AD4A4F09FDCA8E66A4BDE5240A1191F782EFA5D15B794139`.
 - Modelo Vosk incluído: 14 arquivos, 51,07 MiB.
 - A interface do smoke permanece aberta por 2,5 segundos e encerra sozinha; o fluxo completo de processo retornou código 0.
 

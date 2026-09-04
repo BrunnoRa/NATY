@@ -52,6 +52,8 @@ class PackagingTests(unittest.TestCase):
         self.assertNotIn("obsidian_vault", (install + uninstall).lower())
         self.assertNotIn("userprofile", (install + uninstall).lower())
         self.assertIn('"Programs\\NATY"', install)
+        self.assertIn('_internal\\assets\\naty.ico', install)
+        self.assertIn('ie4uinit.exe', install)
 
 
 if __name__ == "__main__":
