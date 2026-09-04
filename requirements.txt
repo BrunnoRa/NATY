@@ -1,0 +1,4 @@
+ddgs>=9.5,<10
+Pillow>=11,<13
+psutil>=7,<8
+pystray>=0.19,<1

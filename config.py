@@ -1,0 +1,117 @@
+"""Configuração leve e portátil da Naty."""
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, fields
+from pathlib import Path
+import os
+import sys
+import tomllib
+
+
+def app_root() -> Path:
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).resolve().parent
+    return Path(__file__).resolve().parent
+
+
+@dataclass(slots=True)
+class Settings:
+    first_run_completed: bool = False
+    user_name: str = ""
+    language: str = "pt-BR"
+    hotkey: str = "CTRL+ALT+SPACE"
+    voice_enabled: bool = True
+    wake_word_enabled: bool = False
+    tts_enabled: bool = True
+    tts_provider: str = "sapi"
+    stt_provider: str = "vosk"
+    vosk_model_path: str = ""
+    microphone_device: int = -1
+    voice: str = ""
+    voice_rate: int = 0
+    voice_volume: int = 100
+    unload_stt_after_use: bool = True
+    ai_enabled: bool = False
+    ai_model_path: str = ""
+    ai_threads: int = 4
+    ai_context_size: int = 2048
+    ai_max_ram_mb: int = 1800
+    ai_min_available_ram_mb: int = 2200
+    ai_idle_unload_seconds: int = 120
+    obsidian_enabled: bool = False
+    obsidian_vault_path: str = ""
+    naty_obsidian_path: str = ""
+    obsidian_max_notes: int = 6
+    obsidian_max_chars: int = 8000
+    research_enabled: bool = True
+    max_search_results: int = 5
+    research_timeout_seconds: int = 10
+    max_response_size: int = 1_000_000
+    max_cpu_threads: int = 4
+    start_with_windows: bool = False
+    notifications_enabled: bool = True
+    proactivity_enabled: bool = False
+    morning_briefing: bool = False
+    evening_review: bool = False
+    overdue_followup: bool = True
+    morning_briefing_time: str = "08:00"
+    evening_review_time: str = "19:00"
+    google_enabled: bool = False
+    google_credentials_path: str = ""
+    perplexity_enabled: bool = False
+    performance_monitor_enabled: bool = True
+    privacy_mode: bool = True
+    scheduler_interval_seconds: int = 30
+    daily_summary_time: str = "08:00"
+    data_dir: str = "data"
+    log_dir: str = "logs"
+
+    @classmethod
+    def load(cls, path: str | Path | None = None) -> "Settings":
+        cfg_path = Path(path) if path else app_root() / "config.toml"
+        settings = cls()
+        if cfg_path.exists():
+            raw = tomllib.loads(cfg_path.read_text(encoding="utf-8"))
+            raw = raw.get("naty", raw)
+            allowed = {f.name for f in fields(cls)}
+            for key, value in raw.items():
+                if key in allowed:
+                    setattr(settings, key, value)
+        return settings
+
+    def resolve_path(self, value: str) -> Path:
+        path = Path(os.path.expandvars(value)).expanduser()
+        return path if path.is_absolute() else app_root() / path
+
+    @property
+    def database_path(self) -> Path:
+        return self.resolve_path(self.data_dir) / "naty.db"
+
+    @property
+    def logs_path(self) -> Path:
+        return self.resolve_path(self.log_dir)
+
+    @property
+    def managed_obsidian_path(self) -> Path | None:
+        """Pasta que a Naty pode gerenciar, sempre contida no Vault configurado."""
+        if not self.obsidian_vault_path:
+            return None
+        vault = self.resolve_path(self.obsidian_vault_path).resolve()
+        managed = self.resolve_path(self.naty_obsidian_path).resolve() if self.naty_obsidian_path else vault / "Naty"
+        if managed != (vault / "Naty").resolve():
+            return None
+        return managed
+
+    def as_dict(self) -> dict:
+        return asdict(self)
+
+    def save(self, path: str | Path | None = None) -> Path:
+        cfg_path = Path(path) if path else app_root() / "config.toml"
+        lines = ["[naty]"]
+        for key, value in self.as_dict().items():
+            if isinstance(value, bool): encoded = "true" if value else "false"
+            elif isinstance(value, str): encoded = '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+            else: encoded = str(value)
+            lines.append(f"{key} = {encoded}")
+        cfg_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return cfg_path

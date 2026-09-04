@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.py[cod]
+data/
+logs/
+dist/
+build/
+models/
+credentials*.json
+token*.json
+*.token
+*.spec.bak
+.coverage
+
+config.toml
