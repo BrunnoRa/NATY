@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import Settings
-from voice.devices import default_input_device_id, friendly_audio_error, list_microphones, measure_microphone_level
+from voice.devices import default_input_device_id, friendly_audio_error, list_microphones, measure_microphone_level, resolve_microphone
 from voice.sapi_tts import SapiTTS
 from voice.vosk_stt import VoskSTT
 
@@ -19,12 +19,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Diagnóstico reproduzível de voz da Naty")
     parser.add_argument("--listen", action="store_true", help="faz contagem regressiva e transcreve até 7 segundos")
     parser.add_argument("--speak", action="store_true", help="reproduz uma frase pela voz SAPI selecionada")
+    parser.add_argument("--device", type=int, help="testa temporariamente um ID sem alterar a configuração")
     args = parser.parse_args()
     settings = Settings.load()
     devices = list_microphones()
     voices = SapiTTS.list_voices()
-    effective_device = settings.microphone_device if settings.microphone_device >= 0 else default_input_device_id()
-    selected = next((device for device in devices if device["id"] == effective_device), None)
+    selected = (next((device for device in devices if device["id"] == args.device), None) if args.device is not None
+                else resolve_microphone(settings.microphone_device, settings.microphone_name,
+                                        settings.microphone_hostapi, settings.microphone_sample_rate))
+    effective_device = selected["id"] if selected else -1
 
     print(f"Dispositivo padrão: {default_input_device_id()}")
     for device in devices:

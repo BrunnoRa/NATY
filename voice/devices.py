@@ -35,6 +35,43 @@ def list_microphones() -> list[dict]:
     return result
 
 
+def _device_key(value: object) -> str:
+    return " ".join(str(value or "").casefold().split())
+
+
+def resolve_microphone(
+    device_id: int = -1,
+    name: str = "",
+    hostapi: str = "",
+    sample_rate: int = 0,
+) -> dict | None:
+    """Resolve um microfone por identidade estável após o Windows renumerar IDs."""
+    devices = list_microphones()
+    if not devices:
+        return None
+
+    stored = next((device for device in devices if device["id"] == device_id), None)
+    wanted_name, wanted_host = _device_key(name), _device_key(hostapi)
+    if wanted_name:
+        candidates = [device for device in devices if _device_key(device.get("name")) == wanted_name]
+        if wanted_host:
+            same_host = [device for device in candidates if _device_key(device.get("hostapi")) == wanted_host]
+            if same_host:
+                candidates = same_host
+        if sample_rate:
+            same_rate = [device for device in candidates if int(device.get("default_samplerate", 0)) == int(sample_rate)]
+            if same_rate:
+                candidates = same_rate
+        if stored in candidates:
+            return dict(stored)
+        if candidates:
+            return dict(next((device for device in candidates if device.get("is_default")), candidates[0]))
+
+    if stored:
+        return dict(stored)
+    return dict(next((device for device in devices if device.get("is_default")), devices[0]))
+
+
 def validate_microphone(device_id: int) -> tuple[bool, str]:
     devices = list_microphones()
     if not devices: return False, "Nenhum microfone de entrada foi encontrado."

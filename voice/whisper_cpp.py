@@ -24,6 +24,10 @@ class WhisperCppSTT(STTProvider):
     def available(self) -> bool:
         return Path(self.executable).is_file() and Path(self.model_path).is_file()
 
+    def diagnostics(self) -> dict:
+        from voice.whisper_setup import diagnostics
+        return diagnostics(self.executable, self.model_path)
+
     def transcribe_wav(self, path: str | Path) -> str:
         if not self.available(): raise RuntimeError("whisper.cpp ou modelo multilíngue indisponível.")
         started = time.perf_counter()
@@ -35,10 +39,11 @@ class WhisperCppSTT(STTProvider):
         self.last_transcription = " ".join(line.strip() for line in result.stdout.splitlines() if line.strip()).strip()
         return self.last_transcription
 
-    def listen_once(self, timeout: float = 8.0, on_level=None) -> str:
+    def listen_once(self, timeout: float = 8.0, on_level=None, on_state=None) -> str:
         captured = self.capture.record(timeout, on_level)
         self.last_capture_metrics = captured.metrics
         if not captured.pcm: return ""
+        if on_state: on_state("TRANSCRIBING")
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp: path = Path(temp.name)
         try:
             with wave.open(str(path), "wb") as audio:

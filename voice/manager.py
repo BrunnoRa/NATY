@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import inspect
 import threading
 import time
 
 from config import Settings
-from voice.devices import friendly_audio_error
+from voice.devices import friendly_audio_error, resolve_microphone
 from voice.sapi_tts import SapiTTS
 from voice.vosk_stt import VoskSTT
 from voice.whisper_cpp import WhisperCppSTT
@@ -44,21 +45,34 @@ class VoiceSession:
 class VoiceSessionManager:
     def __init__(self, settings: Settings, stt=None, tts=None):
         self.settings = settings
+        self.microphone = resolve_microphone(
+            settings.microphone_device,
+            getattr(settings, "microphone_name", ""),
+            getattr(settings, "microphone_hostapi", ""),
+            getattr(settings, "microphone_sample_rate", 0),
+        )
+        device_id = self.microphone["id"] if self.microphone else settings.microphone_device
         neural_tts = PiperTTS(getattr(settings, "piper_executable_path", "piper"), getattr(settings, "piper_model_path", ""))
         self.tts = tts or (neural_tts if settings.tts_provider == "piper" and neural_tts.available()
                            else SapiTTS(settings.voice, settings.voice_rate, settings.voice_volume))
         whisper = WhisperCppSTT(settings.whisper_executable_path, settings.whisper_model_path,
-            device=settings.microphone_device, microphone_gain=settings.microphone_gain,
+            device=device_id, microphone_gain=settings.microphone_gain,
             automatic_gain=settings.automatic_gain_enabled, pre_roll_ms=settings.pre_roll_ms,
             end_silence_ms=settings.end_silence_ms, max_utterance_seconds=settings.max_utterance_seconds)
         self.stt = stt or (whisper if settings.stt_provider == "whisper_cpp" and whisper.available()
                            else VoskSTT(settings.vosk_model_path, unload_after_use=False,
-                               device=settings.microphone_device, microphone_gain=settings.microphone_gain,
+                               device=device_id, microphone_gain=settings.microphone_gain,
                                automatic_gain=settings.automatic_gain_enabled))
         followup = max(5, min(15, int(settings.conversation_followup_seconds)))
         self.session = VoiceSession(followup)
         self.active = False
         self._lock = threading.Lock()
+
+    def _listen_once(self, timeout: float, on_level=None, on_state=None) -> str:
+        parameters = inspect.signature(self.stt.listen_once).parameters
+        if "on_state" in parameters:
+            return self.stt.listen_once(timeout, on_level=on_level, on_state=on_state)
+        return self.stt.listen_once(timeout, on_level=on_level)
 
     def speak_async(self, text: str, on_done: Callable[[], None] | None = None) -> None:
         if not self.settings.tts_enabled:
@@ -76,6 +90,7 @@ class VoiceSessionManager:
         on_error: Callable[[str], None],
         timeout: float = 8.0,
         on_level: Callable[[float], None] | None = None,
+        on_state: Callable[[str], None] | None = None,
     ) -> None:
         def work():
             with self._lock:
@@ -85,7 +100,7 @@ class VoiceSessionManager:
                 self.active = True
             started = time.perf_counter()
             try:
-                text = self.stt.listen_once(timeout, on_level=on_level)
+                text = self._listen_once(timeout, on_level=on_level, on_state=on_state)
                 latency = (time.perf_counter() - started) * 1000
                 if not text:
                     with self._lock: self.active = False
@@ -106,6 +121,7 @@ class VoiceSessionManager:
         on_text: Callable[[str], None],
         on_error: Callable[[str], None],
         on_level: Callable[[float], None] | None = None,
+        on_state: Callable[[str], None] | None = None,
     ) -> None:
         self.session.open()
         generation = self.session.generation
@@ -120,7 +136,7 @@ class VoiceSessionManager:
                 self._unload_if_configured()
                 on_error(message)
 
-        self.listen_async(heard, failed, timeout=8.0, on_level=on_level)
+        self.listen_async(heard, failed, timeout=8.0, on_level=on_level, on_state=on_state)
 
     def respond_and_follow_up(
         self,
@@ -145,7 +161,7 @@ class VoiceSessionManager:
                         raise RuntimeError("A Naty já está ouvindo.")
                     self.active = True
                 started = time.perf_counter()
-                followup = self.stt.listen_once(self.session.followup_seconds, on_level=on_level)
+                followup = self._listen_once(self.session.followup_seconds, on_level=on_level, on_state=on_state)
                 latency = (time.perf_counter() - started) * 1000
                 with self._lock: self.active = False
                 if not self.session.active or self.session.generation != generation:
@@ -167,6 +183,8 @@ class VoiceSessionManager:
 
     def stop_session(self) -> None:
         self.session.close()
+        try: self.tts.stop()
+        except AttributeError: pass
         self._unload_if_configured()
 
     def _unload_if_configured(self) -> None:

@@ -77,3 +77,8 @@ class IPCProtocolTests(unittest.TestCase):
         response = handler.handle(request("shutdown", request_id="9"))
         self.assertTrue(handler.shutdown_requested)
         self.assertEqual(response["type"], "shutdown_ack")
+
+    def test_voice_messages_are_allowed_by_protocol(self):
+        for type_ in ("voice_start", "voice_status", "voice_stop"):
+            message = request(type_, request_id=type_)
+            self.assertEqual(decode_message(encode_message(message))["type"], type_)

@@ -4,9 +4,14 @@ import argparse
 import json
 from pathlib import Path
 import re
+import sys
 import time
 
 import psutil
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import Settings
 from voice.vosk_stt import VoskSTT
@@ -39,7 +44,8 @@ def measure(name: str, provider, wav: Path, expected: str) -> dict:
     before = tree_rss(); started = time.perf_counter()
     output = provider.transcribe_wav(wav)
     latency = (time.perf_counter() - started) * 1000; after = tree_rss()
-    return {"provider": name, "available": True, "output": output,
+    return {"provider": name, "model": str(getattr(provider, "model_path", "")),
+            "available": True, "transcription": output,
             "wer": word_error_rate(expected, output), "latency_ms": round(latency, 2),
             "ram_delta_mib": round((after - before) / 1024 / 1024, 2)}
 
@@ -51,18 +57,23 @@ def main() -> int:
     parser.add_argument("--whisper-exe", default="")
     parser.add_argument("--base-model", default="")
     parser.add_argument("--small-model", default="")
+    parser.add_argument("--output", type=Path, help="salva o relatório JSON para o diagnóstico")
     args = parser.parse_args()
     if not args.wav.is_file(): parser.error("WAV não encontrado")
     settings = Settings.load()
     executable = args.whisper_exe or settings.whisper_executable_path
     providers = [
         ("Vosk", VoskSTT(settings.vosk_model_path)),
-        ("Whisper Base", WhisperCppSTT(executable, args.base_model)),
+        ("Whisper Base", WhisperCppSTT(executable, args.base_model or settings.whisper_model_path)),
         ("Whisper Small", WhisperCppSTT(executable, args.small_model)),
     ]
     report = {"wav": str(args.wav.resolve()), "expected": args.expected,
               "results": [measure(name, provider, args.wav, args.expected) for name, provider in providers]}
-    print(json.dumps(report, ensure_ascii=False, indent=2))
+    encoded = json.dumps(report, ensure_ascii=False, indent=2)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(encoded + "\n", encoding="utf-8")
+    print(encoded)
     return 0
 
 

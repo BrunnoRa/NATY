@@ -31,7 +31,7 @@ public sealed class KnowledgeGraphControl : FrameworkElement
 
     private void UpdateTimer()
     {
-        var animate = IsVisible && _state is "LISTENING" or "PROCESSING" or "RETRIEVING" or "SPEAKING";
+        var animate = IsVisible && _state is "LISTENING" or "TRANSCRIBING" or "PROCESSING" or "RETRIEVING" or "SPEAKING";
         if (animate && !_timer.IsEnabled) _timer.Start();
         else if (!animate) _timer.Stop();
     }

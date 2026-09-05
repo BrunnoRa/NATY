@@ -48,6 +48,9 @@ class Settings:
     max_utterance_seconds: int = 20
     voice_model_idle_seconds: int = 30
     microphone_device: int = -1
+    microphone_name: str = ""
+    microphone_hostapi: str = ""
+    microphone_sample_rate: int = 0
     microphone_gain: float = 12.0
     automatic_gain_enabled: bool = True
     voice: str = ""

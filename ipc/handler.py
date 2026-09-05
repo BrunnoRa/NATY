@@ -12,6 +12,7 @@ class CoreRequestHandler:
     def __init__(self, assistant):
         self.assistant = assistant
         self.shutdown_requested = False
+        self._voice = None
 
     def _metrics(self) -> dict:
         try:
@@ -38,11 +39,26 @@ class CoreRequestHandler:
 
     def _voice_available(self) -> bool:
         try:
+            from voice.whisper_cpp import WhisperCppSTT
             from voice.vosk_stt import VoskSTT
+            from voice.devices import resolve_microphone
             settings = self.assistant.settings
-            return VoskSTT(settings.vosk_model_path, device=settings.microphone_device).available()
+            microphone = resolve_microphone(settings.microphone_device,
+                                            getattr(settings, "microphone_name", ""),
+                                            getattr(settings, "microphone_hostapi", ""),
+                                            getattr(settings, "microphone_sample_rate", 0))
+            device = microphone["id"] if microphone else settings.microphone_device
+            whisper = WhisperCppSTT(getattr(settings, "whisper_executable_path", ""),
+                                    getattr(settings, "whisper_model_path", ""), device=device)
+            return whisper.available() or VoskSTT(settings.vosk_model_path, device=device).available()
         except Exception:
             return False
+
+    def _voice_controller(self):
+        if self._voice is None:
+            from voice.controller import VoiceController
+            self._voice = VoiceController(self.assistant.settings, self._execute_text)
+        return self._voice
 
     def _graph(self, active_terms=()) -> dict:
         nodes, edges = self.assistant.knowledge_graph.snapshot(limit=24)
@@ -78,6 +94,22 @@ class CoreRequestHandler:
             "notifications": self.assistant.drain_notifications() if hasattr(self.assistant, "drain_notifications") else [],
         }
 
+    def _execute_text(self, text: str) -> dict:
+        if not text or len(text) > 8000:
+            raise ProtocolError("Texto vazio ou acima de 8.000 caracteres.")
+        if hasattr(self.assistant, "handle_result"):
+            result = self.assistant.handle_result(text)
+            payload = result.payload()
+            display_message = result.message.split("\n\nFontes:\n", 1)[0]
+            payload["message"] = display_message
+            payload["text"] = display_message
+        else:
+            answer = self.assistant.handle(text)
+            payload = {"text": answer, "success": True, "type": "message", "data": None, "sources": [],
+                       "ui": {"mode": "brain", "panel": "none", "title": ""}, "error": None}
+        payload.update({"state": AppState.IDLE.value, "graph": self._graph(self._active_terms(payload.get("data")))})
+        return payload
+
     def handle(self, message: dict) -> dict:
         type_ = message["type"]
         if type_ == "ping":
@@ -90,21 +122,16 @@ class CoreRequestHandler:
             return response(message, "graph", self._graph())
         if type_ == "user_input":
             text = str(message["payload"].get("text", "")).strip()
-            if not text or len(text) > 8000:
-                raise ProtocolError("Texto vazio ou acima de 8.000 caracteres.")
-            if hasattr(self.assistant, "handle_result"):
-                result = self.assistant.handle_result(text)
-                payload = result.payload()
-                display_message = result.message.split("\n\nFontes:\n", 1)[0]
-                payload["message"] = display_message
-                payload["text"] = display_message
-            else:
-                answer = self.assistant.handle(text)
-                payload = {"text": answer, "success": True, "type": "message", "data": None, "sources": [],
-                           "ui": {"mode": "brain", "panel": "none", "title": ""}, "error": None}
-            payload.update({"state": AppState.IDLE.value, "graph": self._graph(self._active_terms(payload.get("data")))})
-            return response(message, "assistant_response", payload)
+            return response(message, "assistant_response", self._execute_text(text))
+        if type_ == "voice_start":
+            return response(message, "voice_status", self._voice_controller().start())
+        if type_ == "voice_status":
+            return response(message, "voice_status", self._voice_controller().snapshot())
+        if type_ == "voice_stop":
+            return response(message, "voice_status", self._voice_controller().stop())
         if type_ == "shutdown":
+            if self._voice is not None:
+                self._voice.close()
             self.shutdown_requested = True
             return response(message, "shutdown_ack", {"clean": True})
         raise ProtocolError("Tipo não tratado.")

@@ -9,6 +9,7 @@ from typing import Any
 class AppState(str, Enum):
     IDLE = "IDLE"
     LISTENING = "LISTENING"
+    TRANSCRIBING = "TRANSCRIBING"
     PROCESSING = "PROCESSING"
     RESEARCHING = "RESEARCHING"
     RETRIEVING = "RETRIEVING"

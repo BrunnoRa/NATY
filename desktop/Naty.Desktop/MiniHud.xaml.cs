@@ -28,6 +28,16 @@ public partial class MiniHud : Window
         if (!string.IsNullOrWhiteSpace(response)) ResponseText.Text = response;
     }
 
+    public void UpdateVoice(string state, double level, string? transcription = null, string? response = null)
+    {
+        StateText.Text = state;
+        LevelBar.Value = Math.Clamp(level * 100, 0, 100);
+        if (!string.IsNullOrWhiteSpace(response)) ResponseText.Text = response;
+        else if (!string.IsNullOrWhiteSpace(transcription)) ResponseText.Text = $"Você: {transcription}";
+        else if (state == "LISTENING") ResponseText.Text = "Estou ouvindo…";
+        else if (state == "TRANSCRIBING") ResponseText.Text = "Transcrevendo localmente…";
+    }
+
     private async void InputBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key == Key.Escape) { Hide(); return; }

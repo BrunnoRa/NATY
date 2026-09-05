@@ -22,8 +22,11 @@ public partial class MainWindow : Window
     private readonly MiniHud _hud = new();
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromSeconds(5) };
+    private readonly DispatcherTimer _voicePoll = new() { Interval = TimeSpan.FromMilliseconds(220) };
     private TrayService? _tray;
     private bool _exiting;
+    private string _lastVoiceResponse = "";
+    private bool _voiceRequestPending;
     private static readonly HashSet<string> PrimaryProviders = new(StringComparer.OrdinalIgnoreCase)
         { "Voice", "Web", "Obsidian", "Sync" };
 
@@ -36,6 +39,7 @@ public partial class MainWindow : Window
         _hud.ExpandRequested += ShowDashboard;
         _clock.Tick += (_, _) => _viewModel.Clock = DateTime.Now.ToString("HH:mm");
         _refresh.Tick += async (_, _) => await RefreshDashboardAsync();
+        _voicePoll.Tick += async (_, _) => await PollVoiceAsync();
         Loaded += OnLoaded;
         Closing += OnClosing;
         StateChanged += (_, _) => Graph.SetPaused(WindowState == WindowState.Minimized || !IsVisible);
@@ -43,7 +47,7 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _tray = new TrayService(() => Dispatcher.Invoke(ShowDashboard), () => Dispatcher.Invoke(() => _hud.Open(_viewModel.State)),
+        _tray = new TrayService(() => Dispatcher.Invoke(ShowDashboard), () => Dispatcher.Invoke(() => _ = StartVoiceAsync()),
             () => Dispatcher.Invoke(ShowDashboard), () => Dispatcher.Invoke(async () => await ExitAsync()));
         RegisterGlobalHotkey();
         _clock.Start(); _refresh.Start(); _viewModel.Clock = DateTime.Now.ToString("HH:mm");
@@ -134,6 +138,73 @@ public partial class MainWindow : Window
         finally { SetState("IDLE"); }
     }
 
+    private async Task StartVoiceAsync()
+    {
+        if (_voiceRequestPending) return;
+        _voiceRequestPending = true;
+        _hud.Open("LISTENING");
+        SetState("LISTENING");
+        try
+        {
+            if (!_core.IsConnected && !await _core.EnsureConnectedAsync()) throw new InvalidOperationException("Core desconectado");
+            var response = await _core.RequestAsync("voice_start", timeoutMilliseconds: 3000);
+            ApplyVoiceStatus(response.Payload);
+            _voicePoll.Start();
+        }
+        catch (Exception exc)
+        {
+            _viewModel.Response = $"Não consegui iniciar a voz: {exc.Message}";
+            _hud.UpdateState("ERROR", _viewModel.Response);
+            SetState("ERROR");
+        }
+        finally { _voiceRequestPending = false; }
+    }
+
+    private async Task PollVoiceAsync()
+    {
+        if (_voiceRequestPending) return;
+        _voiceRequestPending = true;
+        try
+        {
+            var response = await _core.RequestAsync("voice_status", timeoutMilliseconds: 1500);
+            ApplyVoiceStatus(response.Payload);
+            if (!response.Payload.TryGetProperty("active", out var active) || !active.GetBoolean())
+                _voicePoll.Stop();
+        }
+        catch
+        {
+            _voicePoll.Stop();
+            SetState("ERROR");
+        }
+        finally { _voiceRequestPending = false; }
+    }
+
+    private void ApplyVoiceStatus(JsonElement payload)
+    {
+        var state = payload.TryGetProperty("state", out var stateValue) ? stateValue.GetString() ?? "IDLE" : "IDLE";
+        var level = payload.TryGetProperty("level", out var levelValue) && levelValue.ValueKind == JsonValueKind.Number
+            ? levelValue.GetDouble() : 0;
+        var transcription = payload.TryGetProperty("transcription", out var transcriptionValue)
+            ? transcriptionValue.GetString() : null;
+        var answer = payload.TryGetProperty("response", out var responseValue) ? responseValue.GetString() : null;
+        var error = payload.TryGetProperty("error", out var errorValue) && errorValue.ValueKind == JsonValueKind.String
+            ? errorValue.GetString() : null;
+        SetState(state);
+        _hud.UpdateVoice(state, level, transcription, error ?? answer);
+        if (!string.IsNullOrWhiteSpace(error)) _viewModel.Response = error;
+        if (!string.IsNullOrWhiteSpace(answer) && answer != _lastVoiceResponse)
+        {
+            _lastVoiceResponse = answer;
+            _viewModel.Response = answer;
+            if (payload.TryGetProperty("result", out var result) && result.ValueKind == JsonValueKind.Object)
+            {
+                ApplyPresentation(result);
+                if (result.TryGetProperty("graph", out var graph)) SetGraph(graph);
+            }
+            _ = RefreshDashboardAsync();
+        }
+    }
+
     private void SetState(string state) { _viewModel.State = state; Graph.SetState(state); _hud.UpdateState(state); }
     private void ApplyPresentation(JsonElement payload)
     {
@@ -201,7 +272,7 @@ public partial class MainWindow : Window
     private void CloseContext_Click(object sender, RoutedEventArgs e) => ContextDrawer.Visibility = Visibility.Collapsed;
     private async void Send_Click(object sender, RoutedEventArgs e) { var text = _viewModel.Input; _viewModel.Input = ""; await SendTextAsync(text); }
     private async void CommandBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (e.Key == Key.Enter) { e.Handled = true; var text = _viewModel.Input; _viewModel.Input = ""; await SendTextAsync(text); } }
-    private void Listen_Click(object sender, RoutedEventArgs e) => _hud.Open(_viewModel.State);
+    private async void Listen_Click(object sender, RoutedEventArgs e) => await StartVoiceAsync();
     private void Shortcut_Click(object sender, RoutedEventArgs e) { if (sender is FrameworkElement { Tag: string text }) { _viewModel.Input = text; CommandBox.Focus(); CommandBox.CaretIndex = CommandBox.Text.Length; } }
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2) ToggleMaximize(); else DragMove(); }
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -222,14 +293,14 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == 0x0312 && wParam.ToInt32() == HotkeyId) { _hud.Open(_viewModel.State); handled = true; }
+        if (msg == 0x0312 && wParam.ToInt32() == HotkeyId) { _ = StartVoiceAsync(); handled = true; }
         return IntPtr.Zero;
     }
 
     private async Task ExitAsync()
     {
         if (_exiting) return;
-        _exiting = true; _refresh.Stop(); _clock.Stop();
+        _exiting = true; _refresh.Stop(); _clock.Stop(); _voicePoll.Stop();
         UnregisterHotKey(new WindowInteropHelper(this).Handle, HotkeyId);
         _tray?.Dispose(); _hud.Close();
         await _core.DisposeAsync();
