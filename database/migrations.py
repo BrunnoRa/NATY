@@ -115,6 +115,16 @@ MIGRATIONS: list[tuple[int, str]] = [
       FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL);
     CREATE INDEX IF NOT EXISTS idx_workspaces_enabled ON workspaces(enabled,name);
     """),
+    (7, """
+    CREATE TABLE IF NOT EXISTS notification_items(
+      id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL, category TEXT NOT NULL,
+      priority TEXT NOT NULL, title TEXT NOT NULL, message TEXT NOT NULL,
+      action_json TEXT NOT NULL DEFAULT '{}', read INTEGER NOT NULL DEFAULT 0,
+      event_key TEXT);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read_time ON notification_items(read,timestamp DESC);
+    CREATE TABLE IF NOT EXISTS proactivity_events(
+      event_key TEXT PRIMARY KEY, last_shown TEXT NOT NULL, cooldown_minutes INTEGER NOT NULL);
+    """),
 ]
 
 

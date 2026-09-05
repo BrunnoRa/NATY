@@ -1,0 +1,3 @@
+from proactivity.manager import ProactivityManager
+
+__all__ = ["ProactivityManager"]

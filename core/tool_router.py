@@ -8,7 +8,7 @@ from nlu import intents
 class ToolRouter:
     def __init__(self, *, tasks, lists, reminders, projects, notes, calendar, planner, research, context: SessionContext,
                  google=None, automations=None, windows=None, planning=None, knowledge=None, system_status=None,
-                 temporal_memory=None, briefing=None, workspaces=None):
+                 temporal_memory=None, briefing=None, workspaces=None, notifications=None):
         self.tasks, self.lists, self.reminders = tasks, lists, reminders
         self.projects, self.notes, self.calendar, self.planner, self.research = projects, notes, calendar, planner, research
         self.context = context
@@ -18,6 +18,7 @@ class ToolRouter:
         self.temporal_memory = temporal_memory
         self.briefing = briefing
         self.workspaces = workspaces
+        self.notifications = notifications
         self.pending_confirmation: tuple[str, dict] | None = None
 
     def execute(self, intent: Intent) -> ToolResult:
@@ -104,6 +105,8 @@ class ToolRouter:
         if name == intents.WORKSPACE_ACTIVATE and self.workspaces: return self.workspaces.activate(e.get("name", ""))
         if name == intents.WORKSPACE_END and self.workspaces: return self.workspaces.end(e.get("name", ""))
         if name == intents.WORKSPACE_LIST and self.workspaces: return self.workspaces.list()
+        if name == intents.NOTIFICATION_LIST and self.notifications:
+            return self.notifications.show(bool(e.get("important_only")))
         if name == intents.OBSIDIAN_QUERY and self.knowledge: return self.knowledge.query(e.get("query", ""))
         if name == intents.CREATE_AUTOMATION and self.automations: return self.automations.create(**e)
         if name == intents.OPEN_APP and self.windows: return self.windows.open_app(e["app"])

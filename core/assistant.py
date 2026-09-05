@@ -24,6 +24,7 @@ from database.repositories.tasks import TaskRepository
 from database.repositories.automations import AutomationRepository
 from database.repositories.temporal_memory import TemporalMemoryRepository
 from database.repositories.workspaces import WorkspaceRepository
+from database.repositories.notifications import NotificationRepository
 from planner.planner import Planner
 from conversation.engine import ConversationEngine
 from knowledge.graph import KnowledgeGraph
@@ -53,12 +54,14 @@ from tools.system_status import SystemStatusTool
 from tools.temporal_memory import TemporalMemoryTool
 from tools.briefing import BriefingTool
 from tools.workspaces import WorkspaceExecutor, WorkspaceTool
+from tools.notifications import NotificationTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
 from sync.models import DeviceIdentity
 from diagnostics.service import DiagnosticService
 from uuid import uuid4
+from proactivity.manager import ProactivityManager
 
 
 def setup_logging(settings: Settings) -> logging.Logger:
@@ -83,6 +86,7 @@ class NatyAssistant:
         automation_repo = AutomationRepository(self.db)
         self.temporal_repo = TemporalMemoryRepository(self.db)
         self.workspace_repo = WorkspaceRepository(self.db)
+        self.notification_repo = NotificationRepository(self.db)
         self.session_id = uuid4().hex
         self.temporal_repo.prune()
         self.reminder_repo, self.memory_repo = reminder_repo, MemoryRepository(self.db)
@@ -116,6 +120,7 @@ class NatyAssistant:
             context=self.context, google=google_tool, automations=AutomationsTool(automation_repo), windows=WindowsActionsTool(),
             planning=PlanningTool(self.db, task_tool, reminder_repo), system_status=SystemStatusTool(),
             temporal_memory=TemporalMemoryTool(self.temporal_repo))
+        self.tool_router.notifications = NotificationTool(self.notification_repo)
         self.ai = LlamaCppProvider(self.settings.ai_model_path, self.settings.ai_threads, self.settings.ai_context_size,
             self.settings.ai_idle_unload_seconds, self.settings.ai_max_ram_mb, self.settings.ai_min_available_ram_mb) if self.settings.ai_enabled else NoAIProvider()
         self.obsidian_index = ObsidianIndex(
@@ -158,6 +163,10 @@ class NatyAssistant:
         )
         self.workspaces = WorkspaceTool(self.workspace_repo, WorkspaceExecutor(self.tool_router.windows))
         self.tool_router.workspaces = self.workspaces
+        self.proactivity = ProactivityManager(
+            self.settings, self.db, task_repo, reminder_repo, self.notification_repo,
+            self._emit_transient, sync_getter=lambda: self.sync,
+        )
         self.state = AppState.IDLE
         self.diagnostics = DiagnosticService(self)
 
@@ -213,10 +222,14 @@ class NatyAssistant:
         if self.scheduler:
             return
         self.scheduler = Scheduler(self.reminder_repo, self.task_repo, self._notify,
-                                   self.settings.scheduler_interval_seconds, self.settings, self.automation_repo)
+                                   self.settings.scheduler_interval_seconds, self.settings, self.automation_repo, self.proactivity)
         self.scheduler.start()
 
     def _notify(self, title: str, message: str) -> None:
+        self.notification_repo.add("NATY", "IMPORTANT", title, message)
+        self._emit_transient(title, message)
+
+    def _emit_transient(self, title: str, message: str) -> None:
         self.notifications.append({"title": title, "message": message})
 
     def drain_notifications(self) -> list[dict[str, str]]:

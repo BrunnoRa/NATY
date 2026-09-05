@@ -51,6 +51,7 @@ public partial class SettingsWindow : Window
             ObsidianEnabled.IsChecked = Bool(root, "obsidian_enabled"); ObsidianVault.Text = String(root, "obsidian_vault_path"); NatyObsidian.Text = String(root, "naty_obsidian_path");
             SyncEnabled.IsChecked = Bool(root, "sync_enabled"); SyncFolder.Text = String(root, "sync_folder"); DeviceName.Text = String(root, "device_name");
             Select(LearningMode, String(root, "learning_mode", "assisted")); Select(Proactivity, String(root, "proactivity_level", "important")); PrivacyMode.IsChecked = Bool(root, "privacy_mode", true);
+            QuietHours.IsChecked = Bool(root, "quiet_hours_enabled"); QuietHoursStart.Text = String(root, "quiet_hours_start", "22:00"); QuietHoursEnd.Text = String(root, "quiet_hours_end", "07:00");
             ApplyRuntime(root.GetProperty("runtime")); StatusText.Text = "Configurações carregadas";
         }
         catch (Exception exc) { StatusText.Text = $"Erro: {exc.Message}"; }
@@ -84,6 +85,7 @@ public partial class SettingsWindow : Window
             ["obsidian_vault_path"] = ObsidianVault.Text.Trim(), ["naty_obsidian_path"] = NatyObsidian.Text.Trim(),
             ["sync_enabled"] = SyncEnabled.IsChecked == true, ["sync_folder"] = SyncFolder.Text.Trim(), ["device_name"] = DeviceName.Text.Trim(),
             ["learning_mode"] = Selected(LearningMode), ["proactivity_level"] = Selected(Proactivity), ["privacy_mode"] = PrivacyMode.IsChecked == true,
+            ["quiet_hours_enabled"] = QuietHours.IsChecked == true, ["quiet_hours_start"] = QuietHoursStart.Text.Trim(), ["quiet_hours_end"] = QuietHoursEnd.Text.Trim(),
         };
         try { await _core.RequestAsync("settings_save", values); StatusText.Text = "Salvo. Reinicie para aplicar mudanças de inicialização e sync."; }
         catch (Exception exc) { StatusText.Text = $"Não foi possível salvar: {exc.Message}"; }

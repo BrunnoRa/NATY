@@ -286,6 +286,10 @@ public partial class MainWindow : Window
                                 _viewModel.ContextItems.Add(new ContextItem(action.GetString() ?? "Ação", "Concluída"));
                 }
             }
+            else if (panel == "notifications")
+            {
+                AddObjectArray(data, "notifications", "title", "message", "NATY");
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {

@@ -18,6 +18,7 @@ class CoreRequestHandler:
         "sync_enabled", "sync_folder", "device_name", "learning_mode",
         "proactivity_level", "privacy_mode",
         "daily_briefing_enabled", "daily_briefing_time",
+        "quiet_hours_enabled", "quiet_hours_start", "quiet_hours_end",
     }
     SETTINGS_ENUMS = {
         "learning_mode": {"manual", "assisted", "automatic_safe"},

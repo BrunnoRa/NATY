@@ -48,6 +48,10 @@ class RuleParser:
             return Intent(intents.WORKSPACE_ACTIVATE, {"name": workspace_activate.group(1).strip()}, raw_text=raw)
         if re.search(r"\b(?:vou estudar|hora de estudar)\b", plain):
             return Intent(intents.WORKSPACE_ACTIVATE, {"name": "estudo"}, raw_text=raw)
+        if re.search(r"\b(?:tem algo importante|algo importante para mim)\b", plain):
+            return Intent(intents.NOTIFICATION_LIST, {"important_only": True}, raw_text=raw)
+        if re.search(r"\b(?:o que eu perdi|mostra (?:minhas )?notificacoes|quais (?:sao )?minhas notificacoes)\b", plain):
+            return Intent(intents.NOTIFICATION_LIST, {"important_only": False}, raw_text=raw)
         if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)(?:\s+naty)?[!. ]*", plain):
             return Intent(intents.CHAT, {"kind": "greeting"}, raw_text=raw)
         if re.search(r"\b(que horas sao|qual (?:e )?a hora|hora agora)\b", plain):

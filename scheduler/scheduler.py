@@ -9,10 +9,11 @@ from database.repositories.tasks import TaskRepository
 
 
 class Scheduler:
-    def __init__(self, reminders: ReminderRepository, tasks: TaskRepository, notify: Callable[[str, str], None], interval: int = 30, settings=None, automations=None):
+    def __init__(self, reminders: ReminderRepository, tasks: TaskRepository, notify: Callable[[str, str], None], interval: int = 30, settings=None, automations=None, proactivity=None):
         self.reminders, self.tasks, self.notify = reminders, tasks, notify
         self.settings = settings
         self.automations = automations
+        self.proactivity = proactivity
         self.interval = max(15, interval)
         self._stop = threading.Event(); self._thread: threading.Thread | None = None
 
@@ -37,7 +38,7 @@ class Scheduler:
                 self.automations.mark_run(automation["id"], automation["trigger_value"], now.isoformat(timespec="minutes"))
         proactivity = self.settings is None or self.settings.proactivity_enabled
         followup = self.settings is None or self.settings.overdue_followup
-        if proactivity and followup:
+        if proactivity and followup and self.proactivity is None:
             cutoff = (now - timedelta(hours=24)).isoformat(timespec="seconds")
             for task in self.tasks.list("pending", now.isoformat(timespec="seconds")):
                 if not task["last_prompted_at"] or task["last_prompted_at"] < cutoff:
@@ -50,6 +51,8 @@ class Scheduler:
                 self._daily_summary(now, "morning", self.settings.morning_briefing_time, "Bom dia")
             if self.settings.evening_review:
                 self._daily_summary(now, "evening", self.settings.evening_review_time, "Revisão do dia")
+        if self.proactivity:
+            self.proactivity.scan(now)
 
     def _daily_summary(self, now: datetime, kind: str, configured_time: str, title: str) -> None:
         try:
