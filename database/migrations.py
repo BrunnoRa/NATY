@@ -79,6 +79,23 @@ MIGRATIONS: list[tuple[int, str]] = [
     ALTER TABLE automation_rules ADD COLUMN next_run_at TEXT;
     CREATE INDEX IF NOT EXISTS idx_automation_due ON automation_rules(enabled, next_run_at);
     """),
+    (4, """
+    CREATE TABLE IF NOT EXISTS sync_applied_events(
+      event_id TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS sync_entity_map(
+      entity TEXT NOT NULL, sync_id TEXT NOT NULL, local_id TEXT NOT NULL,
+      PRIMARY KEY(entity, sync_id), UNIQUE(entity, local_id));
+    CREATE TABLE IF NOT EXISTS sync_entity_state(
+      entity TEXT NOT NULL, sync_id TEXT NOT NULL, last_event_id TEXT NOT NULL,
+      last_device_id TEXT NOT NULL, last_timestamp TEXT NOT NULL, payload_json TEXT NOT NULL,
+      tombstone INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(entity, sync_id));
+    CREATE TABLE IF NOT EXISTS sync_conflicts(
+      conflict_id TEXT PRIMARY KEY, entity TEXT NOT NULL, sync_id TEXT NOT NULL,
+      local_event_id TEXT NOT NULL, incoming_event_id TEXT NOT NULL,
+      local_payload_json TEXT NOT NULL, incoming_payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open');
+    CREATE INDEX IF NOT EXISTS idx_sync_conflicts_status ON sync_conflicts(status, created_at);
+    """),
 ]
 
 

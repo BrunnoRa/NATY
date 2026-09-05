@@ -27,13 +27,17 @@ class CoreRequestHandler:
 
     def _providers(self) -> list[dict]:
         settings = self.assistant.settings
+        sync = self.assistant.sync.summary() if getattr(self.assistant, "sync", None) else {"status": "offline"}
+        sync_status = sync["status"]
+        sync_state = {"updated": "online", "syncing": "attention", "conflict": "error", "offline": "off"}.get(sync_status, "off")
+        sync_label = {"updated": "✓ Atualizado", "syncing": "↻ Sincronizando", "conflict": "! Conflito", "offline": "○ Offline"}.get(sync_status, "○ Offline")
         return [
             {"name": "Voice", "state": "online" if settings.voice_enabled and self._voice_available() else "attention" if settings.voice_enabled else "off"},
             {"name": "Web", "state": "online" if settings.research_enabled else "off"},
             {"name": "Gmail", "state": self.assistant.google.auth.status()["state"] if hasattr(self.assistant, "google") else "off"},
             {"name": "Obsidian", "state": "online" if self.assistant.obsidian.available else "off"},
             {"name": "Spotify", "state": "off"},
-            {"name": "Sync", "state": "off"},
+            {"name": "Sync", "state": sync_state, "label": sync_label},
             {"name": "AI", "state": "online" if settings.ai_enabled and self.assistant.ai.available() else "off"},
         ]
 
@@ -92,6 +96,7 @@ class CoreRequestHandler:
             "state": self.assistant.state.value,
             "time": datetime.now().astimezone().isoformat(timespec="seconds"),
             "notifications": self.assistant.drain_notifications() if hasattr(self.assistant, "drain_notifications") else [],
+            "sync": self.assistant.sync.summary() if getattr(self.assistant, "sync", None) else {"status": "offline", "pending": 0, "conflicts": 0},
         }
 
     def _execute_text(self, text: str) -> dict:

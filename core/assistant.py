@@ -49,6 +49,8 @@ from connectors.registry import ConnectorRegistry
 from tools.google_workspace import GoogleWorkspaceTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
+from sync.manager import SyncManager
+from sync.models import DeviceIdentity
 
 
 def setup_logging(settings: Settings) -> logging.Logger:
@@ -124,6 +126,20 @@ class NatyAssistant:
             memories=self.memory_repo, planner=Planner(task_repo), retriever=retriever, ai=self.ai)
         self.skills = build_registry(self.tool_router)
         self.agent_router = AgentRouter(self.intent_router, self.skills, self.conversation, self.events)
+        self.sync: SyncManager | None = None
+        if self.settings.sync_enabled and self.settings.sync_folder:
+            try:
+                identity = DeviceIdentity.load_or_create(
+                    self.settings.resolve_path(self.settings.data_dir) / "device_identity.json",
+                    self.settings.device_name,
+                )
+                self.sync = SyncManager(
+                    self.db, self.settings.resolve_path(self.settings.sync_folder), identity,
+                    on_applied=self._refresh_synced_indexes,
+                )
+                self.sync.start()
+            except (OSError, ValueError):
+                self.logger.exception("Falha ao iniciar sincronização")
         self.state = AppState.IDLE
 
     def handle_result(self, text: str) -> ToolResult:
@@ -143,6 +159,12 @@ class NatyAssistant:
             if candidate:
                 return self.learning.propose(candidate)
             result, route_name = self.agent_router.handle(text)
+            try:
+                self._record_sync_result(result)
+            except Exception:
+                if self.sync:
+                    self.sync.status = "offline"
+                self.logger.exception("Falha ao registrar evento de sincronização")
             if result.entity_type and result.entity_id:
                 label = result.data.get("title", result.data.get("name", "")) if isinstance(result.data, dict) else ""
                 self.context.set_entity(result.entity_type, result.entity_id, label)
@@ -176,7 +198,47 @@ class NatyAssistant:
         current, self.notifications = self.notifications[:], []
         return current
 
+    def _record_sync_result(self, result: ToolResult) -> None:
+        if not self.sync or not result.ok:
+            return
+        action_by_type = {
+            "create_task": ("task", "create"),
+            "task_completed": ("task", "complete"),
+            "complete_last": ("task", "complete"),
+            "update_last": ("task", "update"),
+            "postpone_last": ("task", "update"),
+            "create_reminder": ("reminder", "create"),
+            "create_project": ("project", "create"),
+            "automation_created": ("automation", "create"),
+        }
+        mapped = action_by_type.get(result.type)
+        if mapped and result.entity_id and isinstance(result.data, dict):
+            self.sync.record(mapped[0], result.entity_id, mapped[1], dict(result.data))
+        elif result.type == "add_list_items" and isinstance(result.data, list):
+            for item in result.data:
+                if isinstance(item, dict) and item.get("id"):
+                    payload = dict(item)
+                    list_row = self.db.one("SELECT name FROM lists WHERE id=?", (item.get("list_id"),))
+                    payload["list_name"] = list_row["name"] if list_row else "Lista de Compras"
+                    self.sync.record("shopping_item", item["id"], "create", payload)
+        elif result.type == "check_list_item" and isinstance(result.data, dict) and result.data.get("id"):
+            payload = dict(result.data)
+            list_row = self.db.one("SELECT name FROM lists WHERE id=?", (result.data.get("list_id"),))
+            payload["list_name"] = list_row["name"] if list_row else "Lista de Compras"
+            self.sync.record("shopping_item", result.data["id"], "complete", payload)
+
+    def _refresh_synced_indexes(self) -> None:
+        try:
+            if self.obsidian_index:
+                self.obsidian_index.index()
+            self.knowledge_graph.rebuild()
+            self.events.publish("sync", self.sync.summary() if self.sync else {})
+        except Exception:
+            self.logger.exception("Falha ao atualizar índices após sincronização")
+
     def close(self) -> None:
+        if self.sync:
+            self.sync.stop()
         if self.scheduler:
             self.scheduler.stop()
         try:

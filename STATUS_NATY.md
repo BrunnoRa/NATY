@@ -2,17 +2,17 @@
 
 Branch: `feat/naty-v3-hybrid`
 
-Commit: `HEAD` — `feat: add neural NATY voice` (precedido por `feat: complete real voice pipeline`)
+Commit: `HEAD` — `feat: add event based multi device sync`
 
-Último bloco concluído: Bloco 5 — contratos Google/Gmail/Calendar, disponibilidade e estado amigável `not_configured`.
+Último bloco concluído: Bloco 6 — SyncManager multidispositivo local-first por eventos.
 
-Testes: 123 testes Python aprovados (1 skip DPAPI esperado), compileall, build WPF e dotnet test verdes; git diff check verde.
+Testes: 4 testes específicos de sync aprovados; compileall do bloco, build WPF (0 erros/0 avisos) e git diff check verdes.
 
-Funcional: voz/Whisper/Piper dos blocos anteriores; delegação abre ChatGPT e copia só contexto relevante sem segredos; retorno externo e novas preferências/decisões só são persistidos após confirmação.
+Funcional: SQLite permanece local; eventos JSON são atômicos e idempotentes; Device ID UUID persiste; create/update/complete/delete com tombstone; A→B→A e conflitos concorrentes preservam ambos os conteúdos; sync opcional roda em background e o WPF mostra seu estado.
 
-Não validado: leitura humana das 10 frases, precisão/WER com fala natural, clique/hotkey no WPF reiniciado e OAuth Google (JSON não fornecido).
+Não validado: pasta OneDrive real entre dois PCs, atualização visual observada ao vivo, leitura humana das 10 frases, hotkey após reinicialização e OAuth Google (JSON não fornecido).
 
-Próximo: Bloco 7 — SyncManager por eventos/idempotência; a mídia existente requer somente aceite manual autorizado.
+Próximo: Bloco 7 — Settings WPF usando o mecanismo atual de `Settings`, sem novo sistema de configuração.
 
 ---
 

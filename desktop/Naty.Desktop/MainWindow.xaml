@@ -43,7 +43,7 @@
               <DataTemplate>
                 <Grid Margin="0,7">
                   <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                  <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextSecondary}"/>
+                  <TextBlock Text="{Binding Label}" Foreground="{StaticResource TextSecondary}"/>
                   <Ellipse Grid.Column="1" Width="8" Height="8">
                     <Ellipse.Style>
                       <Style TargetType="Ellipse">

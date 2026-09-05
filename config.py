@@ -93,6 +93,9 @@ class Settings:
     performance_monitor_enabled: bool = True
     privacy_mode: bool = True
     learning_mode: str = "assisted"
+    sync_enabled: bool = False
+    sync_folder: str = ""
+    device_name: str = ""
     scheduler_interval_seconds: int = 30
     daily_summary_time: str = "08:00"
     data_dir: str = "data"

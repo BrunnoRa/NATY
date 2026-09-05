@@ -80,7 +80,10 @@ public partial class MainWindow : Window
             {
                 var name = item.GetProperty("name").GetString() ?? "";
                 if (PrimaryProviders.Contains(name))
-                    _viewModel.Providers.Add(new ProviderStatus(name, item.GetProperty("state").GetString() ?? "off"));
+                {
+                    var label = item.TryGetProperty("label", out var labelValue) ? labelValue.GetString() ?? name : name;
+                    _viewModel.Providers.Add(new ProviderStatus(name, item.GetProperty("state").GetString() ?? "off", label));
+                }
             }
             _viewModel.Tasks.Clear();
             foreach (var item in payload.GetProperty("tasks").EnumerateArray())
