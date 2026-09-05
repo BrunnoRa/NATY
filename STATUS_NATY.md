@@ -2,23 +2,32 @@
 
 Branch: `main`
 
-HEAD: fechamento NATY V3.1 (o commit deste `CURRENT HANDOFF`).
+HEAD: hotfix de produto NATY V3.1 (documentação será o commit final deste ciclo).
 
-Concluído nesta sessão:
-- voz natural sem pausa artificial por sentença e preferência feminina SAPI pt-BR;
-- System Context/diagnóstico, memória temporal, briefing diário e Workspaces seguros;
-- ProactivityManager com cooldown/quiet hours e Notification Center da NATY;
-- contexto do aplicativo ativo, Clipboard explícito e assistente de arquivos com raízes limitadas/Lixeira;
-- SkillRegistry com metadados reais, autoconhecimento, SkillGap confirmado, sugestões e destaques do Brain;
-- catálogo Obsidian gerenciado, versão/pacote 3.1.0, ZIP e instalador.
+Concluído neste hotfix:
+- `VoiceBootstrapService` com diagnóstico, instalação/reparo de Whisper e Piper, detecção e persistência completa do microfone;
+- verificação de voz em background na primeira abertura, aviso discreto e configuração integrada em WPF;
+- `voice_start` retorna `voice_setup_required` estruturado quando o pipeline não está pronto;
+- caminhos técnicos de Whisper/Piper foram movidos para Detalhes avançados;
+- categoria `QUESTION`, pesquisa automática para perguntas naturais e pesquisa obrigatória para informação atual;
+- delegação automática de decisões/análises profundas ao `ChatGPTWebProvider` com contexto mínimo da sessão;
+- conversa natural para saudação, cansaço, projeto em foco e intenção de estudo sem criar ações automaticamente;
+- suíte de 12 frases de aceite cobrindo Router e ausência de clarification genérica.
 
-Testes: 174 executados, 173 aprovados + 1 skip DPAPI esperado; `compileall` verde; WPF 0 avisos/0 erros; `dotnet test` executado; Core empacotado/Named Pipe smoke verde; `git diff --check` verde. RAM híbrida idle: 192,93 MiB antes; 209,14 MiB depois.
+Commits deste ciclo:
+- `f67cef8` — `fix: integrate automatic voice bootstrap`;
+- `4e19116` — `feat: add intelligent question fallback routing`;
+- documentação: `docs: align README with NATY V3.1` (commit seguinte).
 
-Obsidian: 22 arquivos/blocos criados/atualizados somente em `Obsidian Vault\Naty`; indexação incremental 22 alterados/32 preservados; 0 Markdown inválido; FTS5 e KnowledgeGraph validados.
+Validação final: 182 testes Python aprovados; `compileall` verde; Desktop WPF compilado com 0 avisos e 0 erros; `dotnet test` e `git diff --check` aprovados; Core empacotado validado por Named Pipe com ping, dashboard, resposta, diagnóstico, precisão e shutdown limpo.
 
-Não validado: Screen Context V1; wizard humano de instalação/desinstalação; microfone/Whisper falado; voz Piper feminina pt-BR (nenhum modelo feminino oficial compatível foi confirmado); OAuth Google; Sync em dois PCs; pesquisa web do executável empacotado (benchmark ficou sem acesso externo); ações manuais de foco de janela/Clipboard/Lixeira; push bloqueado porque a visibilidade/propriedade de `origin` não pôde ser verificada pelo ambiente.
+Artefatos reconstruídos:
+- `installer/Naty-Windows-3.1.0.zip` (142.730.446 bytes);
+- `installer/NatySetup.exe` (99.399.825 bytes).
 
-Próximo: confirmar o destino GitHub e executar `git push origin main`; depois implementar Screen Context V1 sob comando explícito e executar o aceite humano do instalador `installer/NatySetup.exe`.
+Não validado por automação: captação falada em microfone real, qualidade percebida do TTS, download completo dos modelos em uma instalação limpa, wizard humano do instalador, OAuth Google e sincronização entre dois computadores.
+
+Próximo: validar manualmente instalar → abrir → configurar voz → `Ctrl+Alt+Espaço` → falar → executar → responder.
 
 ---
 
