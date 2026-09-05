@@ -1,5 +1,5 @@
 #define MyAppName "NATY"
-#define MyAppVersion "2.1.0"
+#define MyAppVersion "3.0.0"
 #define MyAppExeName "Naty.exe"
 
 [Setup]
@@ -12,7 +12,7 @@ DefaultGroupName=NATY
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\installer
-OutputBaseFilename=Naty-Setup-{#MyAppVersion}
+OutputBaseFilename=NatySetup
 SetupIconFile=..\assets\naty.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2
@@ -27,17 +27,14 @@ Name: "desktopicon"; Description: "Criar atalho na Área de Trabalho"; GroupDesc
 Name: "startup"; Description: "Iniciar a Naty com o Windows"; GroupDescription: "Inicialização:"; Flags: unchecked
 
 [Files]
-Source: "..\dist\Naty\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\dist\NatyHybrid\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Naty"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\_internal\assets\naty.ico"
-Name: "{autodesktop}\Naty"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\_internal\assets\naty.ico"; Tasks: desktopicon
+Name: "{group}\Naty"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\Assets\naty.ico"
+Name: "{autodesktop}\Naty"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\Assets\naty.ico"; Tasks: desktopicon
 
 [Registry]
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "Naty"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: startup; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Abrir a Naty"; Flags: nowait postinstall skipifsilent
-
-[UninstallDelete]
-Type: filesandordirs; Name: "{localappdata}\NATY"

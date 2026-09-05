@@ -19,7 +19,7 @@ if (Test-Path -LiteralPath $resolvedRoot) {
 New-Item -ItemType Directory -Path $resolvedRoot -Force | Out-Null
 Copy-Item -Path (Join-Path $PayloadPath "*") -Destination $resolvedRoot -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot "uninstall_naty.ps1") -Destination $resolvedRoot -Force
-$iconPath = Join-Path $resolvedRoot "_internal\assets\naty.ico"
+$iconPath = Join-Path $resolvedRoot "Assets\naty.ico"
 if (-not (Test-Path -LiteralPath $iconPath)) { throw "Ícone instalado não encontrado em $iconPath" }
 
 $shell = New-Object -ComObject WScript.Shell

@@ -81,6 +81,20 @@ public sealed class CoreClient : IAsyncDisposable
     private void StartCore()
     {
         if (_coreProcess is { HasExited: false }) return;
+        var packagedCore = Path.Combine(AppContext.BaseDirectory, "Core", "Naty.Core.exe");
+        if (File.Exists(packagedCore))
+        {
+            _coreProcess = Process.Start(new ProcessStartInfo
+            {
+                FileName = packagedCore,
+                Arguments = $"--pipe {PipeName}",
+                WorkingDirectory = Path.GetDirectoryName(packagedCore)!,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WindowStyle = ProcessWindowStyle.Hidden,
+            });
+            return;
+        }
         var root = FindProjectRoot();
         if (root is null) return;
         var python = Path.Combine(root, ".venv", "Scripts", "pythonw.exe");

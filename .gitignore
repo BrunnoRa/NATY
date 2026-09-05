@@ -2,6 +2,7 @@
 .build-venv/
 .dotnet/
 .dotnet-home/
+artifacts/dotnet-cli-home/
 __pycache__/
 *.py[cod]
 data/
@@ -9,6 +10,7 @@ logs/
 dist/
 build/
 installer/
+downloads/
 models/
 credentials*.json
 token*.json

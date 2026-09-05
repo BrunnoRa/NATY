@@ -6,7 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <AssemblyName>Naty.Desktop</AssemblyName>
+    <AssemblyName>Naty</AssemblyName>
     <RootNamespace>Naty.Desktop</RootNamespace>
     <ApplicationIcon>..\..\assets\naty.ico</ApplicationIcon>
   </PropertyGroup>

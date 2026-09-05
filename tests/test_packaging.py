@@ -35,6 +35,11 @@ class PackagingTests(unittest.TestCase):
         self.assertIn("asset_names", spec)
         self.assertNotIn("config.toml", spec)
 
+        core_spec = (ROOT / "naty_core.spec").read_text(encoding="utf-8")
+        self.assertIn('name="Naty.Core"', core_spec)
+        self.assertIn("COLLECT(", core_spec)
+        self.assertNotIn("config.toml", core_spec)
+
     def test_frozen_startup_command_has_no_duplicate_executable(self):
         with patch.object(sys, "frozen", True, create=True), patch.object(sys, "executable", r"C:\Apps\NATY\Naty.exe"):
             command = startup_command()
@@ -52,8 +57,24 @@ class PackagingTests(unittest.TestCase):
         self.assertNotIn("obsidian_vault", (install + uninstall).lower())
         self.assertNotIn("userprofile", (install + uninstall).lower())
         self.assertIn('"Programs\\NATY"', install)
-        self.assertIn('_internal\\assets\\naty.ico', install)
+        self.assertIn('Assets\\naty.ico', install)
         self.assertIn('ie4uinit.exe', install)
+
+    def test_hybrid_build_and_installer_contract(self):
+        build = (ROOT / "scripts" / "build_windows.py").read_text(encoding="utf-8")
+        installer = (ROOT / "packaging" / "Naty.iss").read_text(encoding="utf-8")
+        uninstall = (ROOT / "packaging" / "uninstall_naty.ps1").read_text(encoding="utf-8")
+        desktop = (ROOT / "desktop" / "Naty.Desktop" / "Naty.Desktop.csproj").read_text(encoding="utf-8")
+        client = (ROOT / "desktop" / "Naty.Desktop" / "Services" / "CoreClient.cs").read_text(encoding="utf-8")
+        self.assertIn('"Naty.exe"', build)
+        self.assertIn('"Naty.Core.exe"', build)
+        self.assertIn("--self-contained", build)
+        self.assertIn("NatyHybrid", installer)
+        self.assertIn("OutputBaseFilename=NatySetup", installer)
+        self.assertIn("<AssemblyName>Naty</AssemblyName>", desktop)
+        self.assertIn('"Core", "Naty.Core.exe"', client)
+        self.assertNotIn("Remove-Item -LiteralPath $dataRoot", uninstall)
+        self.assertNotIn("{localappdata}\\NATY", installer.split("[UninstallDelete]")[-1] if "[UninstallDelete]" in installer else "")
 
 
 if __name__ == "__main__":
