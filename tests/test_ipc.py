@@ -23,10 +23,15 @@ class FakeSettings:
     vosk_model_path = ""
     microphone_device = -1
     microphone_name = ""
+    microphone_hostapi = ""
+    microphone_sample_rate = 0
     stt_provider = "whisper_cpp"
+    whisper_executable_path = ""
     whisper_model_path = ""
     tts_provider = "sapi"
+    piper_executable_path = ""
     piper_model_path = ""
+    piper_config_path = ""
     voice = ""
     voice_rate = 0
     voice_volume = 100
@@ -123,9 +128,22 @@ class IPCProtocolTests(unittest.TestCase):
 
     def test_voice_messages_are_allowed_by_protocol(self):
         for type_ in ("voice_start", "voice_status", "voice_stop",
-                      "voice_precision_start", "voice_precision_status", "voice_precision_stop"):
+                      "voice_precision_start", "voice_precision_status", "voice_precision_stop",
+                      "voice_setup_status", "voice_setup_install_stt", "voice_setup_install_tts",
+                      "voice_setup_configure_microphone", "voice_setup_repair"):
             message = request(type_, request_id=type_)
             self.assertEqual(decode_message(encode_message(message))["type"], type_)
+
+    def test_voice_start_returns_structured_setup_requirement(self):
+        assistant = FakeAssistant()
+        with patch("voice.bootstrap.VoiceBootstrapService.status", return_value={
+            "ready": False, "state": "STT_MISSING", "reason": "whisper_missing",
+            "message": "Whisper Base precisa ser instalado.",
+        }):
+            result = CoreRequestHandler(assistant).handle(request("voice_start"))["payload"]
+        self.assertEqual("voice_setup_required", result["type"])
+        self.assertEqual("whisper_missing", result["reason"])
+        self.assertFalse(result["active"])
 
     def test_workspace_messages_are_allowed_by_protocol(self):
         for type_ in ("workspace_list", "workspace_save", "workspace_activate"):

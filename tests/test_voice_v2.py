@@ -12,6 +12,7 @@ from tests.base import TempDatabaseTest
 from voice.devices import audio_level, friendly_audio_error, list_microphones, resolve_microphone, validate_microphone
 from voice.audio_processing import AutomaticGain
 from voice.manager import VoiceSessionManager
+from voice.bootstrap import MIC_MISSING, NEEDS_SETUP, READY, STT_MISSING, VoiceBootstrapService
 from voice.piper_tts import PiperTTS
 from voice.piper_setup import diagnostics as piper_diagnostics, safe_extract_runtime as safe_extract_piper
 from voice.sapi_tts import SapiTTS
@@ -20,6 +21,41 @@ from voice.whisper_setup import diagnostics as whisper_diagnostics, is_windows_x
 
 
 class VoiceV2Tests(TempDatabaseTest):
+    def test_clean_install_reports_setup_without_crashing(self):
+        settings = self.settings(stt_provider="whisper_cpp", whisper_executable_path="", whisper_model_path="",
+                                 tts_provider="sapi")
+        with patch("voice.bootstrap.list_microphones", return_value=[]), \
+             patch("voice.bootstrap.resolve_microphone", return_value=None), \
+             patch("voice.bootstrap.SapiTTS.available", return_value=True), \
+             patch("voice.whisper_setup.is_windows_x64", return_value=True):
+            result = VoiceBootstrapService(settings).status()
+        self.assertEqual(NEEDS_SETUP, result["state"])
+        self.assertEqual("voice_incomplete", result["reason"])
+
+    def test_bootstrap_is_ready_with_whisper_and_microphone(self):
+        executable = self.root / "whisper-cli.exe"; executable.write_bytes(b"exe")
+        model = self.root / "ggml-base.bin"; model.write_bytes(b"model")
+        settings = self.settings(whisper_executable_path=str(executable), whisper_model_path=str(model), tts_provider="sapi")
+        microphone = {"id": 4, "name": "Microfone", "hostapi": "WASAPI", "default_samplerate": 48000}
+        with patch("voice.bootstrap.list_microphones", return_value=[microphone]), \
+             patch("voice.bootstrap.resolve_microphone", return_value=microphone), \
+             patch("voice.bootstrap.SapiTTS.available", return_value=True), \
+             patch("voice.whisper_setup.is_windows_x64", return_value=True):
+            result = VoiceBootstrapService(settings).status()
+        self.assertEqual(READY, result["state"])
+        self.assertTrue(result["ready"])
+
+    def test_bootstrap_persists_complete_microphone_identity(self):
+        settings = self.settings()
+        microphone = {"id": 7, "name": "Realtek", "hostapi": "WASAPI", "default_samplerate": 48000}
+        with patch("voice.bootstrap.list_microphones", return_value=[microphone]), \
+             patch("voice.bootstrap.resolve_microphone", return_value=microphone), \
+             patch("voice.bootstrap.SapiTTS.available", return_value=True):
+            VoiceBootstrapService(settings).configure_microphone(7)
+        self.assertEqual((7, "Realtek", "WASAPI", 48000), (
+            settings.microphone_device, settings.microphone_name,
+            settings.microphone_hostapi, settings.microphone_sample_rate,
+        ))
     def test_microphone_selection(self):
         fake = types.SimpleNamespace(query_devices=lambda: [
             {"name": "Saída", "max_input_channels": 0},

@@ -61,6 +61,7 @@ public partial class MainWindow : Window
         }
         await RefreshDashboardAsync();
         _viewModel.Response = "Core conectado. O que você precisa?";
+        _ = CheckVoiceSetupAsync();
         if (!string.IsNullOrWhiteSpace(App.StartupCommand))
             await SendTextAsync(App.StartupCommand);
         if (!string.IsNullOrWhiteSpace(App.ScreenshotPath))
@@ -161,6 +162,17 @@ public partial class MainWindow : Window
         {
             if (!_core.IsConnected && !await _core.EnsureConnectedAsync()) throw new InvalidOperationException("Core desconectado");
             var response = await _core.RequestAsync("voice_start", new { active_app = _activeContext.GetForRequest() }, timeoutMilliseconds: 3000);
+            if (response.Payload.TryGetProperty("type", out var type) && type.GetString() == "voice_setup_required")
+            {
+                var message = response.Payload.TryGetProperty("message", out var setupMessage)
+                    ? setupMessage.GetString() ?? "Precisamos terminar a configuração da voz."
+                    : "Precisamos terminar a configuração da voz.";
+                ShowVoiceSetup(message);
+                _viewModel.Response = "Precisamos terminar a configuração da voz.";
+                _hud.UpdateState("IDLE", _viewModel.Response);
+                SetState("IDLE");
+                return;
+            }
             ApplyVoiceStatus(response.Payload);
             _voicePoll.Start();
         }
@@ -219,6 +231,37 @@ public partial class MainWindow : Window
     }
 
     private void SetState(string state) { _viewModel.State = state; Graph.SetState(state); _hud.UpdateState(state); }
+
+    private async Task CheckVoiceSetupAsync()
+    {
+        try
+        {
+            var response = await _core.RequestAsync("voice_setup_status", timeoutMilliseconds: 5000);
+            var ready = response.Payload.TryGetProperty("ready", out var value) && value.GetBoolean();
+            if (ready)
+            {
+                VoiceSetupBanner.Visibility = Visibility.Collapsed;
+                return;
+            }
+            var message = response.Payload.TryGetProperty("message", out var text)
+                ? text.GetString() ?? "Configuração de voz incompleta"
+                : "Configuração de voz incompleta";
+            ShowVoiceSetup(message);
+        }
+        catch { }
+    }
+
+    private void ShowVoiceSetup(string message)
+    {
+        VoiceSetupMessage.Text = message;
+        VoiceSetupBanner.Visibility = Visibility.Visible;
+    }
+
+    private void ConfigureVoice_Click(object sender, RoutedEventArgs e)
+    {
+        new SettingsWindow(_core, openVoice: true) { Owner = this }.ShowDialog();
+        _ = CheckVoiceSetupAsync();
+    }
     private void ApplyPresentation(JsonElement payload)
     {
         if (!payload.TryGetProperty("ui", out var ui) || ui.ValueKind != JsonValueKind.Object) return;

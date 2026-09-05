@@ -21,7 +21,7 @@
       <TextBlock Text="CONFIGURAÇÕES" FontSize="22" FontWeight="SemiBold"/>
       <TextBlock x:Name="StatusText" Text="Carregando…" Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
     </DockPanel>
-    <TabControl Grid.Row="1" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource Border}">
+    <TabControl x:Name="SettingsTabs" Grid.Row="1" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource Border}">
       <TabItem Header="Geral">
         <ScrollViewer><StackPanel Margin="22" MaxWidth="650" HorizontalAlignment="Left">
           <CheckBox x:Name="StartWithWindows" Content="Iniciar com Windows"/>
@@ -34,19 +34,40 @@
           <TextBlock Text="Algumas mudanças entram em vigor na próxima inicialização." Foreground="{StaticResource TextMuted}" Margin="0,18,0,0"/>
         </StackPanel></ScrollViewer>
       </TabItem>
-      <TabItem Header="Voz">
+      <TabItem x:Name="VoiceTab" Header="Voz">
         <ScrollViewer><StackPanel Margin="22">
-          <TextBlock Style="{StaticResource FieldLabel}" Text="Microfone configurado"/><TextBox x:Name="Microphone" IsReadOnly="True"/>
-          <TextBlock Style="{StaticResource FieldLabel}" Text="STT provider"/><ComboBox x:Name="SttProvider"><ComboBoxItem Content="whisper_cpp"/><ComboBoxItem Content="vosk"/></ComboBox>
-          <TextBlock Style="{StaticResource FieldLabel}" Text="Whisper model"/><TextBox x:Name="WhisperModel"/>
-          <TextBlock Style="{StaticResource FieldLabel}" Text="TTS provider"/><ComboBox x:Name="TtsProvider"><ComboBoxItem Content="piper"/><ComboBoxItem Content="sapi"/></ComboBox>
-          <TextBlock Style="{StaticResource FieldLabel}" Text="Voz / modelo Piper"/><TextBox x:Name="PiperModel"/>
+          <TextBlock Text="1. Microfone" FontSize="18" FontWeight="SemiBold"/>
+          <ComboBox x:Name="MicrophonePicker" DisplayMemberPath="Name" SelectedValuePath="Id" Margin="0,8,0,0"/>
+          <TextBlock x:Name="MicrophoneStatus" Foreground="{StaticResource TextSecondary}" Margin="0,6,0,14"/>
+
+          <TextBlock Text="2. Reconhecimento" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Text="Whisper Base" Margin="0,8,0,0"/>
+          <TextBlock x:Name="WhisperStatus" Foreground="{StaticResource TextSecondary}" Margin="0,4,0,8"/>
+          <WrapPanel><Button x:Name="InstallSttButton" Content="Instalar" Click="InstallStt_Click" Margin="0,0,8,0"/><Button Content="Reparar" Click="RepairStt_Click"/></WrapPanel>
+
+          <Separator Margin="0,18"/>
+          <TextBlock Text="3. Voz" FontSize="18" FontWeight="SemiBold"/>
+          <TextBlock Style="{StaticResource FieldLabel}" Text="Provider atual"/><ComboBox x:Name="TtsProvider"><ComboBoxItem Content="piper"/><ComboBoxItem Content="sapi"/></ComboBox>
+          <TextBlock x:Name="PiperStatus" Foreground="{StaticResource TextSecondary}" Margin="0,6,0,8"/>
+          <WrapPanel><Button Content="Configurar Piper" Click="InstallTts_Click" Margin="0,0,8,0"/><Button Content="Reparar" Click="RepairTts_Click" Margin="0,0,8,0"/><Button Content="Testar voz" Tag="tts" Click="VoiceTest_Click"/></WrapPanel>
+
           <Grid Margin="0,12,0,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
             <StackPanel><TextBlock Style="{StaticResource FieldLabel}" Text="Velocidade"/><TextBox x:Name="VoiceRate" Margin="0,0,8,0"/></StackPanel>
             <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource FieldLabel}" Text="Volume (0–100)"/><TextBox x:Name="VoiceVolume" Margin="0,0,8,0"/></StackPanel>
             <StackPanel Grid.Column="2"><TextBlock Style="{StaticResource FieldLabel}" Text="Follow-up (s)"/><TextBox x:Name="Followup"/></StackPanel>
           </Grid>
-          <WrapPanel Margin="0,20,0,0"><Button Content="Testar microfone" Tag="microphone" Click="VoiceTest_Click" Margin="0,0,8,8"/><Button Content="Testar Whisper" Tag="whisper" Click="VoiceTest_Click" Margin="0,0,8,8"/><Button Content="Testar voz NATY" Tag="tts" Click="VoiceTest_Click" Margin="0,0,8,8"/><Button Content="Teste de precisão (10 frases)" Click="PrecisionTest_Click" Margin="0,0,0,8"/></WrapPanel>
+          <Button Content="TESTAR NATY" Click="VoiceTest_Click" Margin="0,20,0,8" Padding="12" Background="#123B5A"/>
+          <Button Content="Teste de precisão (10 frases)" Click="PrecisionTest_Click" HorizontalAlignment="Left"/>
+
+          <Expander Header="Detalhes avançados" Margin="0,18,0,0" Foreground="{StaticResource TextSecondary}">
+            <StackPanel Margin="0,8,0,0">
+              <TextBlock Style="{StaticResource FieldLabel}" Text="Whisper executável"/><TextBox x:Name="WhisperExecutable"/>
+              <TextBlock Style="{StaticResource FieldLabel}" Text="Whisper modelo"/><TextBox x:Name="WhisperModel"/>
+              <TextBlock Style="{StaticResource FieldLabel}" Text="Piper executável"/><TextBox x:Name="PiperExecutable"/>
+              <TextBlock Style="{StaticResource FieldLabel}" Text="Piper modelo"/><TextBox x:Name="PiperModel"/>
+              <TextBlock Style="{StaticResource FieldLabel}" Text="Piper configuração"/><TextBox x:Name="PiperConfig"/>
+            </StackPanel>
+          </Expander>
         </StackPanel></ScrollViewer>
       </TabItem>
       <TabItem Header="Integrações">

@@ -17,11 +17,13 @@ public partial class SettingsWindow : Window
     private string _evolutionPath = "";
     private string _conflictsFolder = "";
     private string _technicalDetails = "Execute o diagnóstico primeiro.";
+    private readonly bool _openVoice;
 
-    public SettingsWindow(CoreClient core)
+    public SettingsWindow(CoreClient core, bool openVoice = false)
     {
         InitializeComponent();
         _core = core;
+        _openVoice = openVoice;
         Loaded += async (_, _) => await LoadSettingsAsync();
     }
 
@@ -43,16 +45,19 @@ public partial class SettingsWindow : Window
             StartWithWindows.IsChecked = Bool(root, "start_with_windows"); CloseToTray.IsChecked = Bool(root, "close_to_tray", true);
             DailyBriefing.IsChecked = Bool(root, "daily_briefing_enabled"); DailyBriefingTime.Text = String(root, "daily_briefing_time", "08:00");
             Hotkey.Text = String(root, "hotkey"); Select(InterfaceLanguage, String(root, "language", "pt-BR"));
-            Microphone.Text = String(root, "microphone_name", $"Dispositivo {Int(root, "microphone_device", -1)}");
-            Select(SttProvider, String(root, "stt_provider", "whisper_cpp")); WhisperModel.Text = String(root, "whisper_model_path");
-            Select(TtsProvider, String(root, "tts_provider", "sapi")); PiperModel.Text = String(root, "piper_model_path");
+            WhisperExecutable.Text = String(root, "whisper_executable_path"); WhisperModel.Text = String(root, "whisper_model_path");
+            Select(TtsProvider, String(root, "tts_provider", "sapi"));
+            PiperExecutable.Text = String(root, "piper_executable_path"); PiperModel.Text = String(root, "piper_model_path"); PiperConfig.Text = String(root, "piper_config_path");
             VoiceRate.Text = Int(root, "voice_rate").ToString(); VoiceVolume.Text = Int(root, "voice_volume", 100).ToString(); Followup.Text = Int(root, "conversation_followup_seconds", 8).ToString();
             GoogleEnabled.IsChecked = Bool(root, "google_enabled"); ChatGptHandoff.IsChecked = Bool(root, "chatgpt_handoff_enabled", true);
             ObsidianEnabled.IsChecked = Bool(root, "obsidian_enabled"); ObsidianVault.Text = String(root, "obsidian_vault_path"); NatyObsidian.Text = String(root, "naty_obsidian_path");
             SyncEnabled.IsChecked = Bool(root, "sync_enabled"); SyncFolder.Text = String(root, "sync_folder"); DeviceName.Text = String(root, "device_name");
             Select(LearningMode, String(root, "learning_mode", "assisted")); Select(Proactivity, String(root, "proactivity_level", "important")); PrivacyMode.IsChecked = Bool(root, "privacy_mode", true);
             QuietHours.IsChecked = Bool(root, "quiet_hours_enabled"); QuietHoursStart.Text = String(root, "quiet_hours_start", "22:00"); QuietHoursEnd.Text = String(root, "quiet_hours_end", "07:00");
-            ApplyRuntime(root.GetProperty("runtime")); StatusText.Text = "Configurações carregadas";
+            ApplyRuntime(root.GetProperty("runtime"));
+            ApplyVoiceSetup((await _core.RequestAsync("voice_setup_status")).Payload);
+            if (_openVoice) SettingsTabs.SelectedItem = VoiceTab;
+            StatusText.Text = "Configurações carregadas";
         }
         catch (Exception exc) { StatusText.Text = $"Erro: {exc.Message}"; }
     }
@@ -77,8 +82,10 @@ public partial class SettingsWindow : Window
         var values = new Dictionary<string, object> {
             ["start_with_windows"] = StartWithWindows.IsChecked == true, ["close_to_tray"] = CloseToTray.IsChecked == true,
             ["daily_briefing_enabled"] = DailyBriefing.IsChecked == true, ["daily_briefing_time"] = DailyBriefingTime.Text.Trim(),
-            ["hotkey"] = Hotkey.Text.Trim(), ["language"] = Selected(InterfaceLanguage), ["stt_provider"] = Selected(SttProvider),
-            ["whisper_model_path"] = WhisperModel.Text.Trim(), ["tts_provider"] = Selected(TtsProvider), ["piper_model_path"] = PiperModel.Text.Trim(),
+            ["hotkey"] = Hotkey.Text.Trim(), ["language"] = Selected(InterfaceLanguage), ["stt_provider"] = "whisper_cpp",
+            ["whisper_executable_path"] = WhisperExecutable.Text.Trim(), ["whisper_model_path"] = WhisperModel.Text.Trim(),
+            ["tts_provider"] = Selected(TtsProvider), ["piper_executable_path"] = PiperExecutable.Text.Trim(),
+            ["piper_model_path"] = PiperModel.Text.Trim(), ["piper_config_path"] = PiperConfig.Text.Trim(),
             ["voice_rate"] = Parsed(VoiceRate, 0), ["voice_volume"] = Math.Clamp(Parsed(VoiceVolume, 100), 0, 100),
             ["conversation_followup_seconds"] = Math.Max(0, Parsed(Followup, 8)), ["google_enabled"] = GoogleEnabled.IsChecked == true,
             ["chatgpt_handoff_enabled"] = ChatGptHandoff.IsChecked == true, ["obsidian_enabled"] = ObsidianEnabled.IsChecked == true,
@@ -87,14 +94,75 @@ public partial class SettingsWindow : Window
             ["learning_mode"] = Selected(LearningMode), ["proactivity_level"] = Selected(Proactivity), ["privacy_mode"] = PrivacyMode.IsChecked == true,
             ["quiet_hours_enabled"] = QuietHours.IsChecked == true, ["quiet_hours_start"] = QuietHoursStart.Text.Trim(), ["quiet_hours_end"] = QuietHoursEnd.Text.Trim(),
         };
-        try { await _core.RequestAsync("settings_save", values); StatusText.Text = "Salvo. Reinicie para aplicar mudanças de inicialização e sync."; }
+        try
+        {
+            await _core.RequestAsync("settings_save", values);
+            if (MicrophonePicker.SelectedValue is int deviceId)
+                ApplyVoiceSetup((await _core.RequestAsync("voice_setup_configure_microphone", new { device_id = deviceId })).Payload);
+            StatusText.Text = "Configurações salvas.";
+        }
         catch (Exception exc) { StatusText.Text = $"Não foi possível salvar: {exc.Message}"; }
     }
+
+    private void ApplyVoiceSetup(JsonElement setup)
+    {
+        var microphones = new List<MicrophoneOption>();
+        if (setup.TryGetProperty("microphones", out var devices) && devices.ValueKind == JsonValueKind.Array)
+            foreach (var device in devices.EnumerateArray())
+                microphones.Add(new MicrophoneOption(
+                    Int(device, "id", -1), String(device, "name", "Microfone"), String(device, "hostapi"),
+                    Int(device, "default_samplerate", 0)));
+        MicrophonePicker.ItemsSource = microphones;
+        if (setup.TryGetProperty("microphone", out var selected) && selected.ValueKind == JsonValueKind.Object)
+            MicrophonePicker.SelectedValue = Int(selected, "id", -1);
+        else if (microphones.Count > 0)
+            MicrophonePicker.SelectedIndex = 0;
+
+        MicrophoneStatus.Text = microphones.Count == 0 ? "Nenhum microfone encontrado." : "Microfone disponível.";
+        if (setup.TryGetProperty("stt", out var stt))
+            WhisperStatus.Text = Bool(stt, "ready") ? "Status: instalado" : "Status: não instalado";
+        if (setup.TryGetProperty("tts", out var tts))
+            PiperStatus.Text = $"Status: {(Bool(tts, "ready") ? "pronto" : "não configurado")} · {String(tts, "provider", Selected(TtsProvider))}";
+    }
+
+    private async Task RunVoiceSetupActionAsync(string requestType, object? payload, string progressMessage)
+    {
+        try
+        {
+            StatusText.Text = progressMessage;
+            IsEnabled = false;
+            var result = await _core.RequestAsync(requestType, payload, timeoutMilliseconds: 600000);
+            ApplyVoiceSetup(result.Payload);
+            await LoadSettingsAsync();
+            StatusText.Text = Bool(result.Payload, "ready") ? "Voz pronta para uso." : String(result.Payload, "message", "Configuração incompleta.");
+        }
+        catch (Exception exc) { StatusText.Text = $"Não foi possível concluir: {exc.Message}"; }
+        finally { IsEnabled = true; }
+    }
+
+    private async void InstallStt_Click(object sender, RoutedEventArgs e) =>
+        await RunVoiceSetupActionAsync("voice_setup_install_stt", null, "Instalando Whisper Base…");
+    private async void RepairStt_Click(object sender, RoutedEventArgs e) =>
+        await RunVoiceSetupActionAsync("voice_setup_repair", new { component = "stt" }, "Reparando Whisper…");
+    private async void InstallTts_Click(object sender, RoutedEventArgs e) =>
+        await RunVoiceSetupActionAsync("voice_setup_install_tts", null, "Configurando voz Piper…");
+    private async void RepairTts_Click(object sender, RoutedEventArgs e) =>
+        await RunVoiceSetupActionAsync("voice_setup_repair", new { component = "tts" }, "Reparando voz Piper…");
 
     private async void VoiceTest_Click(object sender, RoutedEventArgs e)
     {
         StatusText.Text = "Iniciando teste pelo pipeline de voz atual…";
-        try { await _core.RequestAsync("voice_start", timeoutMilliseconds: 3000); StatusText.Text = "Teste iniciado; fale com a NATY."; }
+        try
+        {
+            var result = await _core.RequestAsync("voice_start", timeoutMilliseconds: 3000);
+            if (String(result.Payload, "type") == "voice_setup_required")
+            {
+                ApplyVoiceSetup(result.Payload.GetProperty("setup"));
+                StatusText.Text = "Precisamos terminar a configuração da voz.";
+                return;
+            }
+            StatusText.Text = "Teste iniciado; fale com a NATY.";
+        }
         catch (Exception exc) { StatusText.Text = $"Teste indisponível: {exc.Message}"; }
     }
     private void PrecisionTest_Click(object sender, RoutedEventArgs e)
@@ -131,4 +199,6 @@ public partial class SettingsWindow : Window
     private void Workspaces_Click(object sender, RoutedEventArgs e) => new WorkspaceWindow(_core) { Owner = this }.ShowDialog();
     private static void OpenPath(string path) { if (!string.IsNullOrWhiteSpace(path) && (Directory.Exists(path) || File.Exists(path))) Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
+
+    private sealed record MicrophoneOption(int Id, string Name, string HostApi, int SampleRate);
 }

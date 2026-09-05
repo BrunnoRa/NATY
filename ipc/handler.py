@@ -11,8 +11,10 @@ from ipc.protocol import ProtocolError, response
 class CoreRequestHandler:
     SETTINGS_FIELDS = {
         "start_with_windows", "close_to_tray", "hotkey", "language",
-        "microphone_device", "microphone_name", "stt_provider", "whisper_model_path",
-        "tts_provider", "piper_model_path", "voice", "voice_rate", "voice_volume",
+        "microphone_device", "microphone_name", "microphone_hostapi", "microphone_sample_rate",
+        "stt_provider", "whisper_executable_path", "whisper_model_path",
+        "tts_provider", "piper_executable_path", "piper_model_path", "piper_config_path",
+        "voice", "voice_rate", "voice_volume",
         "conversation_followup_seconds", "google_enabled", "chatgpt_handoff_enabled",
         "obsidian_enabled", "obsidian_vault_path", "naty_obsidian_path",
         "sync_enabled", "sync_folder", "device_name", "learning_mode",
@@ -33,6 +35,7 @@ class CoreRequestHandler:
         self.assistant = assistant
         self.shutdown_requested = False
         self._voice = None
+        self._voice_bootstrap = None
 
     def _metrics(self) -> dict:
         try:
@@ -85,6 +88,12 @@ class CoreRequestHandler:
             self._voice = VoiceController(self.assistant.settings, self._execute_text)
         return self._voice
 
+    def _voice_bootstrap_service(self):
+        if self._voice_bootstrap is None:
+            from voice.bootstrap import VoiceBootstrapService
+            self._voice_bootstrap = VoiceBootstrapService(self.assistant.settings)
+        return self._voice_bootstrap
+
     def _settings_payload(self) -> dict:
         settings = self.assistant.settings
         values = {name: getattr(settings, name) for name in self.SETTINGS_FIELDS}
@@ -120,6 +129,7 @@ class CoreRequestHandler:
                 raise ProtocolError(f"Valor inválido para {name}.")
             setattr(settings, name, value)
         settings.save()
+        self._voice = None
         return self._settings_payload()
 
     def _graph(self, active_terms=()) -> dict:
@@ -194,6 +204,12 @@ class CoreRequestHandler:
         if type_ == "voice_start":
             if hasattr(self.assistant, "update_active_context"):
                 self.assistant.update_active_context(message["payload"].get("active_app"))
+            setup = self._voice_bootstrap_service().status()
+            if not setup["ready"]:
+                return response(message, "voice_status", {
+                    "type": "voice_setup_required", "state": setup["state"], "active": False,
+                    "reason": setup["reason"], "message": setup["message"], "setup": setup,
+                })
             return response(message, "voice_status", self._voice_controller().start())
         if type_ == "voice_status":
             return response(message, "voice_status", self._voice_controller().snapshot())
@@ -206,6 +222,30 @@ class CoreRequestHandler:
             return response(message, "voice_precision_status", self._voice_controller().precision_snapshot())
         if type_ == "voice_precision_stop":
             return response(message, "voice_precision_status", self._voice_controller().stop_precision())
+        if type_ == "voice_setup_status":
+            return response(message, "voice_setup_status", self._voice_bootstrap_service().status())
+        if type_ == "voice_setup_install_stt":
+            result = self._voice_bootstrap_service().install_stt()
+            self._voice = None
+            return response(message, "voice_setup_status", result)
+        if type_ == "voice_setup_install_tts":
+            result = self._voice_bootstrap_service().install_tts()
+            self._voice = None
+            return response(message, "voice_setup_status", result)
+        if type_ == "voice_setup_configure_microphone":
+            try:
+                result = self._voice_bootstrap_service().configure_microphone(int(message["payload"].get("device_id", -1)))
+            except (TypeError, ValueError) as exc:
+                raise ProtocolError(str(exc)) from exc
+            self._voice = None
+            return response(message, "voice_setup_status", result)
+        if type_ == "voice_setup_repair":
+            try:
+                result = self._voice_bootstrap_service().repair(str(message["payload"].get("component", "all")))
+            except ValueError as exc:
+                raise ProtocolError(str(exc)) from exc
+            self._voice = None
+            return response(message, "voice_setup_status", result)
         if type_ == "settings_get":
             return response(message, "settings", self._settings_payload())
         if type_ == "settings_save":

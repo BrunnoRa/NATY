@@ -86,7 +86,7 @@ def friendly_audio_error(error: BaseException | str) -> str:
     if "já está ouvindo" in lowered:
         return text
     if "vosk" in lowered or "modelo pt-br" in lowered:
-        return "O Vosk ou o modelo pt-BR não está disponível. Execute setup_voice.bat e confira o caminho do modelo."
+        return "O reconhecimento de voz não está configurado. Abra Configurações > Voz para concluir a instalação."
     if "-9999" in lowered or "host error" in lowered or "directsound error" in lowered:
         return ("O Windows recusou a abertura do microfone. Verifique Configurações > Privacidade e segurança > "
                 "Microfone, feche apps que possam estar usando o dispositivo e teste outra entrada da lista.")

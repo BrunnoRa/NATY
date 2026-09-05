@@ -11,6 +11,8 @@ ALLOWED_TYPES = {
     "ping", "status", "dashboard", "graph", "user_input",
     "voice_start", "voice_status", "voice_stop",
     "voice_precision_start", "voice_precision_status", "voice_precision_stop",
+    "voice_setup_status", "voice_setup_install_stt", "voice_setup_install_tts",
+    "voice_setup_configure_microphone", "voice_setup_repair",
     "settings_get", "settings_save", "sync_now", "diagnostics", "shutdown",
     "workspace_list", "workspace_save", "workspace_activate",
 }
