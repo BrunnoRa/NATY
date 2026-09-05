@@ -2,17 +2,17 @@
 
 Branch: `feat/naty-v3-hybrid`
 
-Commit: `HEAD` — `feat: add event based multi device sync`
+Commit: `HEAD` — `feat: add NATY settings experience`
 
-Último bloco concluído: Bloco 6 — SyncManager multidispositivo local-first por eventos.
+Último bloco concluído: Bloco 7 — experiência de configurações WPF integrada ao `Settings` atual.
 
-Testes: 4 testes específicos de sync aprovados; compileall do bloco, build WPF (0 erros/0 avisos) e git diff check verdes.
+Testes: 10 testes IPC/configuração aprovados, incluindo persistência após reload e bloqueio de campo secreto; build WPF com 0 erros/0 avisos e git diff check verde.
 
-Funcional: SQLite permanece local; eventos JSON são atômicos e idempotentes; Device ID UUID persiste; create/update/complete/delete com tombstone; A→B→A e conflitos concorrentes preservam ambos os conteúdos; sync opcional roda em background e o WPF mostra seu estado.
+Funcional: janela Settings WPF com Geral, Voz, Integrações, Sincronização, Memória/privacidade e Sobre; testes usam pipelines existentes; sync manual e paths auxiliares; TOML único persiste valores sem expor credenciais; fechar para tray e handoff ChatGPT respeitam a configuração.
 
-Não validado: pasta OneDrive real entre dois PCs, atualização visual observada ao vivo, leitura humana das 10 frases, hotkey após reinicialização e OAuth Google (JSON não fornecido).
+Não validado: inspeção/cliques humanos na nova janela, testes reais dos três botões de voz, pasta OneDrive entre dois PCs, hotkey após reinicialização e OAuth Google (JSON não fornecido).
 
-Próximo: Bloco 7 — Settings WPF usando o mecanismo atual de `Settings`, sem novo sistema de configuração.
+Próximo: Bloco 8 — empacotamento híbrido reutilizando PyInstaller, scripts atuais e Inno Setup.
 
 ---
 

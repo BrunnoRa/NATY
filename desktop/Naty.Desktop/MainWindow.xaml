@@ -25,6 +25,7 @@
           <TextBlock Text="{Binding Clock}" FontFamily="Cascadia Mono, Consolas" FontSize="15"/>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Content="⚙" Width="40" Margin="3" ToolTip="Configurações" Click="Settings_Click"/>
           <Button Content="—" Width="40" Margin="3" Click="Minimize_Click"/>
           <Button Content="□" Width="40" Margin="3" Click="Maximize_Click"/>
           <Button Content="×" Width="40" Margin="3" Click="Close_Click"/>

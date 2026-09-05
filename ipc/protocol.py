@@ -7,7 +7,11 @@ from uuid import uuid4
 
 PROTOCOL_VERSION = 1
 MAX_MESSAGE_BYTES = 64 * 1024
-ALLOWED_TYPES = {"ping", "status", "dashboard", "graph", "user_input", "voice_start", "voice_status", "voice_stop", "shutdown"}
+ALLOWED_TYPES = {
+    "ping", "status", "dashboard", "graph", "user_input",
+    "voice_start", "voice_status", "voice_stop",
+    "settings_get", "settings_save", "sync_now", "shutdown",
+}
 
 
 class ProtocolError(ValueError):

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import tempfile
 import unittest
+from unittest.mock import patch
 
+from config import Settings
 from ipc.handler import CoreRequestHandler
 from ipc.protocol import ProtocolError, decode_message, encode_message, request
 
@@ -18,6 +22,34 @@ class FakeSettings:
     ai_enabled = False
     vosk_model_path = ""
     microphone_device = -1
+    microphone_name = ""
+    stt_provider = "whisper_cpp"
+    whisper_model_path = ""
+    tts_provider = "sapi"
+    piper_model_path = ""
+    voice = ""
+    voice_rate = 0
+    voice_volume = 100
+    conversation_followup_seconds = 8
+    start_with_windows = False
+    close_to_tray = True
+    hotkey = "CTRL+ALT+SPACE"
+    language = "pt-BR"
+    chatgpt_handoff_enabled = True
+    obsidian_enabled = False
+    obsidian_vault_path = ""
+    naty_obsidian_path = ""
+    sync_enabled = False
+    sync_folder = ""
+    device_name = ""
+    learning_mode = "assisted"
+    proactivity_level = "important"
+    privacy_mode = True
+    data_dir = "data"
+    managed_obsidian_path = None
+    saved = False
+    def resolve_path(self, value): return __import__("pathlib").Path(value)
+    def save(self): self.saved = True
 
 
 class FakeRepo:
@@ -82,3 +114,31 @@ class IPCProtocolTests(unittest.TestCase):
         for type_ in ("voice_start", "voice_status", "voice_stop"):
             message = request(type_, request_id=type_)
             self.assertEqual(decode_message(encode_message(message))["type"], type_)
+
+    def test_settings_are_filtered_validated_and_persisted(self):
+        handler = CoreRequestHandler(FakeAssistant())
+        payload = handler.handle(request("settings_get", request_id="settings"))["payload"]
+        self.assertIn("learning_mode", payload)
+        self.assertNotIn("google_credentials_path", payload)
+
+        updated = handler.handle(request("settings_save", {"learning_mode": "manual", "voice_volume": 75}))["payload"]
+        self.assertEqual("manual", updated["learning_mode"])
+        self.assertEqual(75, updated["voice_volume"])
+        self.assertTrue(FakeAssistant.settings.saved)
+        with self.assertRaises(ProtocolError):
+            handler.handle(request("settings_save", {"google_credentials_path": "secret.json"}))
+
+    def test_sync_messages_are_allowed_by_protocol(self):
+        for type_ in ("settings_get", "settings_save", "sync_now"):
+            self.assertEqual(type_, decode_message(encode_message(request(type_)))["type"])
+
+    def test_saved_settings_survive_reload(self):
+        with tempfile.TemporaryDirectory() as directory, patch("config.user_data_root", return_value=Path(directory)):
+            assistant = FakeAssistant()
+            assistant.settings = Settings(voice_enabled=False, learning_mode="assisted")
+            CoreRequestHandler(assistant).handle(request("settings_save", {
+                "learning_mode": "automatic_safe", "close_to_tray": False,
+            }))
+            restored = Settings.load()
+            self.assertEqual("automatic_safe", restored.learning_mode)
+            self.assertFalse(restored.close_to_tray)

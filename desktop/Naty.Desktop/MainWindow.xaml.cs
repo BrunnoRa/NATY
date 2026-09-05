@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private bool _exiting;
     private string _lastVoiceResponse = "";
     private bool _voiceRequestPending;
+    private bool _closeToTray = true;
     private static readonly HashSet<string> PrimaryProviders = new(StringComparer.OrdinalIgnoreCase)
         { "Voice", "Web", "Obsidian", "Sync" };
 
@@ -91,6 +92,8 @@ public partial class MainWindow : Window
                     item.TryGetProperty("due_at", out var due) && due.ValueKind != JsonValueKind.Null ? due.GetString() : null,
                     item.TryGetProperty("priority", out var priority) ? priority.GetString() ?? "normal" : "normal"));
             var metrics = payload.GetProperty("metrics");
+            if (payload.TryGetProperty("ui_settings", out var uiSettings) && uiSettings.TryGetProperty("close_to_tray", out var closeToTray))
+                _closeToTray = closeToTray.GetBoolean();
             _viewModel.Ram = metrics.TryGetProperty("ram_mib", out var ram) && ram.ValueKind == JsonValueKind.Number ? $"{ram.GetDouble():0.0} MiB" : "—";
             _viewModel.Cpu = metrics.TryGetProperty("cpu_percent", out var cpu) && cpu.ValueKind == JsonValueKind.Number ? $"{cpu.GetDouble():0.0}%" : "—";
             SetGraph(payload.GetProperty("graph"));
@@ -273,6 +276,7 @@ public partial class MainWindow : Window
     }
 
     private void CloseContext_Click(object sender, RoutedEventArgs e) => ContextDrawer.Visibility = Visibility.Collapsed;
+    private void Settings_Click(object sender, RoutedEventArgs e) => new SettingsWindow(_core) { Owner = this }.ShowDialog();
     private async void Send_Click(object sender, RoutedEventArgs e) { var text = _viewModel.Input; _viewModel.Input = ""; await SendTextAsync(text); }
     private async void CommandBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (e.Key == Key.Enter) { e.Handled = true; var text = _viewModel.Input; _viewModel.Input = ""; await SendTextAsync(text); } }
     private async void Listen_Click(object sender, RoutedEventArgs e) => await StartVoiceAsync();
@@ -281,7 +285,7 @@ public partial class MainWindow : Window
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
     private void Maximize_Click(object sender, RoutedEventArgs e) => ToggleMaximize();
     private void ToggleMaximize() => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-    private void Close_Click(object sender, RoutedEventArgs e) => HideToTray();
+    private async void Close_Click(object sender, RoutedEventArgs e) { if (_closeToTray) HideToTray(); else await ExitAsync(); }
 
     private void ShowDashboard() { Show(); WindowState = WindowState.Normal; Activate(); Graph.SetPaused(false); }
     private void HideToTray() { Hide(); Graph.SetPaused(true); }

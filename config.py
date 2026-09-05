@@ -93,6 +93,9 @@ class Settings:
     performance_monitor_enabled: bool = True
     privacy_mode: bool = True
     learning_mode: str = "assisted"
+    proactivity_level: str = "important"
+    close_to_tray: bool = True
+    chatgpt_handoff_enabled: bool = True
     sync_enabled: bool = False
     sync_folder: str = ""
     device_name: str = ""

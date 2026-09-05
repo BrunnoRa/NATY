@@ -9,6 +9,23 @@ from ipc.protocol import ProtocolError, response
 
 
 class CoreRequestHandler:
+    SETTINGS_FIELDS = {
+        "start_with_windows", "close_to_tray", "hotkey", "language",
+        "microphone_device", "microphone_name", "stt_provider", "whisper_model_path",
+        "tts_provider", "piper_model_path", "voice", "voice_rate", "voice_volume",
+        "conversation_followup_seconds", "google_enabled", "chatgpt_handoff_enabled",
+        "obsidian_enabled", "obsidian_vault_path", "naty_obsidian_path",
+        "sync_enabled", "sync_folder", "device_name", "learning_mode",
+        "proactivity_level", "privacy_mode",
+    }
+    SETTINGS_ENUMS = {
+        "learning_mode": {"manual", "assisted", "automatic_safe"},
+        "proactivity_level": {"off", "important", "assistant"},
+        "language": {"pt-BR"},
+        "stt_provider": {"whisper_cpp", "vosk"},
+        "tts_provider": {"piper", "sapi"},
+    }
+
     def __init__(self, assistant):
         self.assistant = assistant
         self.shutdown_requested = False
@@ -64,6 +81,43 @@ class CoreRequestHandler:
             self._voice = VoiceController(self.assistant.settings, self._execute_text)
         return self._voice
 
+    def _settings_payload(self) -> dict:
+        settings = self.assistant.settings
+        values = {name: getattr(settings, name) for name in self.SETTINGS_FIELDS}
+        providers = {item["name"]: item["state"] for item in self._providers()}
+        values["runtime"] = {
+            "google": providers.get("Gmail", "off"),
+            "obsidian": providers.get("Obsidian", "off"),
+            "voice": providers.get("Voice", "off"),
+            "spotify": "launcher/media",
+            "sync": self.assistant.sync.summary() if getattr(self.assistant, "sync", None) else {
+                "status": "offline", "last_sync": None, "pending": 0, "conflicts": 0, "device_id": "",
+            },
+            "memory_folder": str(settings.resolve_path(settings.data_dir)),
+            "evolution_path": str(settings.managed_obsidian_path / "Evolução da NATY.md") if settings.managed_obsidian_path else "",
+        }
+        return values
+
+    def _save_settings(self, incoming: dict) -> dict:
+        settings = self.assistant.settings
+        unknown = set(incoming) - self.SETTINGS_FIELDS
+        if unknown:
+            raise ProtocolError("Configuração não permitida.")
+        for name, value in incoming.items():
+            current = getattr(settings, name)
+            if isinstance(current, bool):
+                if not isinstance(value, bool):
+                    raise ProtocolError(f"Valor inválido para {name}.")
+            elif isinstance(current, int) and (not isinstance(value, int) or isinstance(value, bool)):
+                raise ProtocolError(f"Valor inválido para {name}.")
+            elif isinstance(current, str) and not isinstance(value, str):
+                raise ProtocolError(f"Valor inválido para {name}.")
+            if name in self.SETTINGS_ENUMS and value not in self.SETTINGS_ENUMS[name]:
+                raise ProtocolError(f"Valor inválido para {name}.")
+            setattr(settings, name, value)
+        settings.save()
+        return self._settings_payload()
+
     def _graph(self, active_terms=()) -> dict:
         nodes, edges = self.assistant.knowledge_graph.snapshot(limit=24)
         terms = {str(term).casefold() for term in active_terms if str(term).strip()}
@@ -97,6 +151,7 @@ class CoreRequestHandler:
             "time": datetime.now().astimezone().isoformat(timespec="seconds"),
             "notifications": self.assistant.drain_notifications() if hasattr(self.assistant, "drain_notifications") else [],
             "sync": self.assistant.sync.summary() if getattr(self.assistant, "sync", None) else {"status": "offline", "pending": 0, "conflicts": 0},
+            "ui_settings": {"close_to_tray": getattr(self.assistant.settings, "close_to_tray", True)},
         }
 
     def _execute_text(self, text: str) -> dict:
@@ -134,6 +189,18 @@ class CoreRequestHandler:
             return response(message, "voice_status", self._voice_controller().snapshot())
         if type_ == "voice_stop":
             return response(message, "voice_status", self._voice_controller().stop())
+        if type_ == "settings_get":
+            return response(message, "settings", self._settings_payload())
+        if type_ == "settings_save":
+            return response(message, "settings", self._save_settings(message["payload"]))
+        if type_ == "sync_now":
+            if not getattr(self.assistant, "sync", None):
+                return response(message, "sync_status", {"status": "offline", "pending": 0, "conflicts": 0})
+            try:
+                return response(message, "sync_status", self.assistant.sync.sync_now())
+            except (OSError, TimeoutError):
+                self.assistant.sync.status = "offline"
+                return response(message, "sync_status", self.assistant.sync.summary())
         if type_ == "shutdown":
             if self._voice is not None:
                 self._voice.close()

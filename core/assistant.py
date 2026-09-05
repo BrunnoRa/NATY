@@ -118,7 +118,7 @@ class NatyAssistant:
             self.settings.obsidian_max_notes, self.settings.obsidian_max_chars)
         self.external_importer = ExternalResultImporter()
         self.learning = LearningManager(self.memory_repo, self.obsidian, self.settings.learning_mode)
-        if self.tool_router.windows:
+        if self.tool_router.windows and self.settings.chatgpt_handoff_enabled:
             self.tool_router.windows.delegation = ChatGPTWebProvider(
                 retriever, self.tool_router.windows._copy_text, self.tool_router.windows.opener)
         self.tool_router.knowledge = KnowledgeQueryTool(retriever)
