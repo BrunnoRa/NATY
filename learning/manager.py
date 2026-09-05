@@ -14,6 +14,7 @@ class LearningManager:
 
     def detect(self, text: str) -> dict | None:
         if self.mode == "off": return None
+        if re.search(r"\b(?:lembre|lembra)\s+que\b", text, re.I): return None
         rules = (
             ("NEW_PREFERENCE", r"\b(?:eu\s+)?prefiro(?:\s+que\s+você)?\s+(.+)"),
             ("DECISION", r"\b(?:eu\s+)?decidi\s+(.+)"),

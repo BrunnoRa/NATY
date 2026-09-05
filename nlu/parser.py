@@ -42,6 +42,8 @@ class RuleParser:
             query = "is:unread" if "nao lido" in plain else re.sub(r"^.*?\b(?:sobre|de)\b", "", clean, flags=re.I).strip()
             return Intent(intents.GMAIL_SEARCH, {"query": query or "in:inbox"}, raw_text=raw)
         if re.search(r"\b(agenda|calendario)\b.*\bgoogle\b", plain): return Intent(intents.GOOGLE_CALENDAR_UPCOMING, raw_text=raw)
+        if re.search(r"\b(estou|estarei|vou estar)\s+livre\b", plain):
+            return Intent(intents.GOOGLE_CALENDAR_FREE, {"starts_at": parse_datetime(clean)}, raw_text=raw)
         if re.search(r"\b(apaga|exclui|remove)\s+(todas\s+)?as\s+tarefas\b", plain): return Intent(intents.DELETE_ALL_TASKS, raw_text=raw)
         if re.search(r"\b(?:salva|salve)\b.*\bpesquisa\b.*\bobsidian\b", plain): return Intent(intents.SAVE_RESEARCH, raw_text=raw)
         if re.search(r"\b(?:abre|abrir)\b.*\bpesquisa\b.*\bnavegador\b", plain): return Intent(intents.OPEN_RESEARCH_BROWSER, raw_text=raw)

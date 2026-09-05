@@ -21,7 +21,7 @@ class IntentRouter:
     def _request_type(name: str) -> str:
         groups = {
             RequestType.CHAT: {intents.CHAT},
-            RequestType.QUESTION: {intents.TIME_QUERY},
+            RequestType.QUESTION: {intents.TIME_QUERY, intents.GOOGLE_CALENDAR_FREE},
             RequestType.LOCAL_ACTION: {intents.ADD_LIST_ITEMS, intents.CHECK_LIST_ITEM, intents.REMOVE_LIST_ITEM, intents.CLEAR_CHECKED},
             RequestType.SEARCH: {intents.RESEARCH},
             RequestType.DEEP_RESEARCH: {intents.COMPARE},

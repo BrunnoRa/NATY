@@ -4,15 +4,15 @@ Branch: `feat/naty-v3-hybrid`
 
 Commit: `HEAD` — `feat: add neural NATY voice` (precedido por `feat: complete real voice pipeline`)
 
-Último bloco concluído: Blocos 3 e 4 — delegação externa com ContextPack seguro, importação estruturada e aprendizado assistido com confirmação.
+Último bloco concluído: Bloco 5 — contratos Google/Gmail/Calendar, disponibilidade e estado amigável `not_configured`.
 
-Testes: 117 testes Python aprovados (1 skip DPAPI esperado), compileall, build WPF e dotnet test verdes; git diff check verde.
+Testes: 123 testes Python aprovados (1 skip DPAPI esperado), compileall, build WPF e dotnet test verdes; git diff check verde.
 
 Funcional: voz/Whisper/Piper dos blocos anteriores; delegação abre ChatGPT e copia só contexto relevante sem segredos; retorno externo e novas preferências/decisões só são persistidos após confirmação.
 
-Não validado: leitura humana das 10 frases, precisão/WER com fala natural e clique/hotkey no aplicativo WPF reiniciado.
+Não validado: leitura humana das 10 frases, precisão/WER com fala natural, clique/hotkey no WPF reiniciado e OAuth Google (JSON não fornecido).
 
-Próximo: Bloco 5 — concluir UI/fluxos Google mantendo o estado `not_configured` sem bloquear a NATY.
+Próximo: Bloco 7 — SyncManager por eventos/idempotência; a mídia existente requer somente aceite manual autorizado.
 
 ---
 

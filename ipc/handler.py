@@ -30,7 +30,7 @@ class CoreRequestHandler:
         return [
             {"name": "Voice", "state": "online" if settings.voice_enabled and self._voice_available() else "attention" if settings.voice_enabled else "off"},
             {"name": "Web", "state": "online" if settings.research_enabled else "off"},
-            {"name": "Gmail", "state": "online" if settings.google_enabled else "off"},
+            {"name": "Gmail", "state": self.assistant.google.auth.status()["state"] if hasattr(self.assistant, "google") else "off"},
             {"name": "Obsidian", "state": "online" if self.assistant.obsidian.available else "off"},
             {"name": "Spotify", "state": "off"},
             {"name": "Sync", "state": "off"},

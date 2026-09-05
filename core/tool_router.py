@@ -45,6 +45,7 @@ class ToolRouter:
             self.pending_confirmation = ("gmail_send", {})
             return ToolResult(False, "Isso enviará o rascunho pelo Gmail. Diga 'sim' para confirmar ou 'cancelar'.")
         if name == intents.GOOGLE_CALENDAR_UPCOMING and self.google: return self.google.upcoming()
+        if name == intents.GOOGLE_CALENDAR_FREE and self.google: return self.google.is_free(e.get("starts_at"))
         if name == intents.CREATE_TASK: return self.tasks.create(**e)
         if name == intents.LIST_TASKS: return self.tasks.list_pending()
         if name == intents.COMPLETE_TASK: return self.tasks.complete_named(e["query"])
@@ -60,7 +61,10 @@ class ToolRouter:
             return self.tasks.postpone(last.id, e["due_at"])
         if name == intents.CREATE_REMINDER: return self.reminders.create(**e)
         if name == intents.LIST_REMINDERS: return self.reminders.list_pending()
-        if name == intents.CREATE_APPOINTMENT: return self.calendar.create(**e)
+        if name == intents.CREATE_APPOINTMENT:
+            if self.google and self.google.settings.google_enabled:
+                return self.google.create_event(e.get("title", "Compromisso"), e.get("starts_at"), e.get("ends_at"))
+            return self.calendar.create(**e)
         if name == intents.LIST_APPOINTMENTS: return self.calendar.today()
         if name == intents.CREATE_LIST: return self.lists.create(e["name"])
         if name == intents.ADD_LIST_ITEMS: return self.lists.add(e.get("list_name") or "Lista de Compras", e["items"], self.context.last_list_id)

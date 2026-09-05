@@ -37,6 +37,21 @@ class GoogleAuth:
             return False
         return True
 
+    def status(self) -> dict:
+        credentials_present = bool(self.credentials_path and self.credentials_path.is_file())
+        dependencies_present = False
+        try:
+            import google.oauth2.credentials  # noqa: F401
+            import google_auth_oauthlib.flow  # noqa: F401
+            dependencies_present = True
+        except ImportError: pass
+        try: connected = credentials_present and dependencies_present and bool(self.token_store.load())
+        except Exception: connected = False
+        state = "connected" if connected else "ready" if credentials_present and dependencies_present else "not_configured"
+        return {"provider": "google", "state": state, "credentials_present": credentials_present,
+                "dependencies_present": dependencies_present, "connected": connected,
+                "gmail": connected, "calendar": connected}
+
     def credentials(self, interactive: bool = False):
         if not self.available():
             raise RuntimeError("Instale requirements-google.txt e configure o JSON OAuth de aplicativo para computador.")

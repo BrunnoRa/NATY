@@ -90,6 +90,7 @@ class NatyAssistant:
             self.settings, self.db, google_auth,
             self.connectors.get("gmail"), self.connectors.get("google_calendar"),
         )
+        self.google = google_tool
         perplexity = PerplexityProvider(enabled=self.settings.perplexity_enabled, timeout=self.settings.research_timeout_seconds)
         research_provider = perplexity if perplexity.available() else None
         research_tool = ResearchTool(self.db, provider=research_provider, max_results=self.settings.max_search_results,
