@@ -19,8 +19,8 @@ def redact_secrets(text: str) -> str:
 
 
 class ContextPackBuilder:
-    def __init__(self, retriever, max_chars: int = 6000):
-        self.retriever, self.max_chars = retriever, max_chars
+    def __init__(self, retriever, session_context=None, max_chars: int = 6000):
+        self.retriever, self.session_context, self.max_chars = retriever, session_context, max_chars
 
     def build(self, question: str) -> str:
         pack = self.retriever.retrieve(question)
@@ -28,27 +28,38 @@ class ContextPackBuilder:
         structured = pack.structured if isinstance(pack.structured, dict) else {}
         project = structured.get("project", {})
         project_text = project.get("name", "Não identificado") if isinstance(project, dict) else "Não identificado"
+        turns = list(getattr(self.session_context, "turns", ())) if self.session_context else []
+        session_text = "\n".join(
+            f"Usuário: {redact_secrets(str(turn.get('user', '')))[:300]}\nNATY: {redact_secrets(str(turn.get('response', '')))[:300]}"
+            for turn in turns[-3:]
+        ) or "Nenhum turno anterior relevante."
+        active_app = getattr(self.session_context, "active_app", None) if self.session_context else None
+        active_text = "Não informado."
+        if isinstance(active_app, dict):
+            active_text = f"{str(active_app.get('process_name', ''))[:120]} — {str(active_app.get('window_title', ''))[:240]}".strip(" —")
         prompt = (
             "# Contexto preparado pela NATY\n\n"
             f"Objetivo:\nAnalisar com profundidade o pedido abaixo.\n\n"
             f"Contexto relevante:\n{local or 'Nenhum dado local relevante encontrado.'}\n\n"
             "Preferências relevantes:\nResponda em português, de forma prática e sem inventar dados pessoais.\n\n"
             f"Projeto relacionado:\n{project_text}\n\n"
+            f"Contexto recente da sessão:\n{session_text}\n\n"
+            f"Aplicativo ativo (somente quando útil):\n{redact_secrets(active_text)}\n\n"
             f"Pergunta:\n{redact_secrets(question)}"
         )
         return prompt[:self.max_chars]
 
 
 class ChatGPTWebProvider:
-    def __init__(self, retriever, copier: Callable[[str], None], opener: Callable[[str], None]):
-        self.builder = ContextPackBuilder(retriever)
+    def __init__(self, retriever, copier: Callable[[str], None], opener: Callable[[str], None], session_context=None):
+        self.builder = ContextPackBuilder(retriever, session_context)
         self.copier, self.opener = copier, opener
 
     def prepare(self, question: str) -> ToolResult:
         context = self.builder.build(question)
         self.copier(context)
         self.opener("https://chatgpt.com/")
-        return ToolResult(True, "Preparei o contexto, copiei para a área de transferência e abri o ChatGPT.",
+        return ToolResult(True, "Esse pedido se beneficia de uma análise mais profunda. Preparei o contexto e abri o ChatGPT.",
                           {"target": "chatgpt", "context": context}, type="delegation_ready",
                           ui_hint={"mode": "context", "panel": "delegation", "title": "Delegação externa"})
 

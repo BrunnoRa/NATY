@@ -150,7 +150,7 @@ class NatyAssistant:
         self.learning = LearningManager(self.memory_repo, self.obsidian, self.settings.learning_mode)
         if self.tool_router.windows and self.settings.chatgpt_handoff_enabled:
             self.tool_router.windows.delegation = ChatGPTWebProvider(
-                retriever, self.tool_router.windows._copy_text, self.tool_router.windows.opener)
+                retriever, self.tool_router.windows._copy_text, self.tool_router.windows.opener, self.context)
         self.tool_router.knowledge = KnowledgeQueryTool(retriever)
         self.conversation = ConversationEngine(context=self.context, tasks=task_repo, lists=list_repo,
             memories=self.memory_repo, planner=Planner(task_repo), retriever=retriever, ai=self.ai)

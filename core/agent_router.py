@@ -14,7 +14,7 @@ class AgentRouter:
             self.events.publish("state", AppState.RETRIEVING)
             result = self.conversation.respond(text)
             return self._decorate(result, intent.name), intent.request_type
-        if intent.name in {intents.RESEARCH, intents.COMPARE}: self.events.publish("state", AppState.RESEARCHING)
+        if intent.name in {intents.QUESTION, intents.RESEARCH, intents.COMPARE}: self.events.publish("state", AppState.RESEARCHING)
         if intent.name in {intents.CONNECT_GOOGLE, intents.DISCONNECT_GOOGLE, intents.GMAIL_SEARCH, intents.GMAIL_DRAFT, intents.GMAIL_SEND, intents.GOOGLE_CALENDAR_UPCOMING}:
             self.events.publish("state", AppState.GMAIL)
         return self._decorate(self.skills.execute(intent), intent.name), intent.request_type
@@ -24,13 +24,14 @@ class AgentRouter:
         graph_terms = {
             intents.SYSTEM_STATUS: ("Sistema",), intents.SYSTEM_DIAGNOSIS: ("Sistema",),
             intents.WORKSPACE_ACTIVATE: ("Workspace",), intents.WORKSPACE_LIST: ("Workspace",),
-            intents.RESEARCH: ("Pesquisa", "Web"), intents.COMPARE: ("Pesquisa", "Web"),
+            intents.QUESTION: ("Pesquisa", "Web"), intents.RESEARCH: ("Pesquisa", "Web"), intents.COMPARE: ("Pesquisa", "Web"),
             intents.OBSIDIAN_QUERY: ("Obsidian",), intents.GMAIL_SEARCH: ("Gmail",),
             intents.GOOGLE_CALENDAR_UPCOMING: ("Agenda",), intents.DAILY_BRIEFING: ("Briefing", "Agenda"),
             intents.CLIPBOARD_SHOW: ("Clipboard",), intents.CLIPBOARD_SUMMARIZE: ("Clipboard",),
         }.get(intent_name, ())
         if graph_terms and isinstance(result.data, dict): result.data["_graph_terms"] = graph_terms
         panels = {
+            intents.QUESTION: ("context", "research", "Resposta com fontes"),
             intents.RESEARCH: ("context", "research", "Pesquisa"),
             intents.COMPARE: ("context", "research", "Comparação"),
             intents.OBSIDIAN_QUERY: ("context", "project", "Memória"),

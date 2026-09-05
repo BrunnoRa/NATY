@@ -102,6 +102,8 @@ class RuleParser:
             return Intent(intents.TEMPORAL_RECALL, {"kind": "last_decision"}, raw_text=raw)
         if plain in {"sim", "confirmo", "pode", "pode fazer"}: return Intent(intents.CONFIRM, raw_text=raw)
         if plain in {"nao", "cancelar", "cancela"}: return Intent(intents.CANCEL, raw_text=raw)
+        if re.search(r"\b(?:me ajuda|ajude-me) a decidir\b|\b(?:analise|analisa|analisar) (?:a |o )?(?:arquitetura|carreira)\b|\b(?:discutir|conversar) profundamente\b|\b(?:analise|pensar|pense|reflexao)\b.*\b(?:profunda|profundamente|carreira)\b", plain):
+            return Intent(intents.DELEGATE, {"query": clean}, raw_text=raw)
         if re.search(r"\b(ajuda|comandos|o que voce (?:faz|sabe fazer)|mostra tudo|voce consegue|voce esta conectada ao google|seu whisper|qual versao voce|quais skills)\b", plain):
             return Intent(intents.HELP, {"query": plain, "show_all": "mostra tudo" in plain}, raw_text=raw)
         if re.search(r"\b(desconecta|desconectar|remove|remover)\b.*\bgoogle\b", plain): return Intent(intents.DISCONNECT_GOOGLE, raw_text=raw)
@@ -122,9 +124,9 @@ class RuleParser:
         if re.search(r"^coloca\s+isso\s+para\b", plain) and parse_datetime(clean): return Intent(intents.POSTPONE_LAST, {"due_at": parse_datetime(clean)}, raw_text=raw)
         if re.search(r"\bo que (?:voce )?lembra (?:sobre mim|de mim)\b", plain): return Intent(intents.UNKNOWN, raw_text=raw)
 
-        if re.search(r"\b(?:analise|pensar|pense|reflexao)\b.*\b(?:profunda|profundamente|carreira)\b", plain):
+        if re.search(r"\b(?:me ajuda|ajude-me) a decidir\b|\b(?:analise|analisa|analisar) (?:a |o )?(?:arquitetura|carreira)\b|\b(?:discutir|conversar) profundamente\b|\b(?:analise|pensar|pense|reflexao)\b.*\b(?:profunda|profundamente|carreira)\b", plain):
             return Intent(intents.DELEGATE, {"query": clean}, raw_text=raw)
-        if re.search(r"\bo que (?:voce )?sabe (?:sobre|do|da)\b", plain):
+        if re.search(r"\bo que (?:voce )?sabe (?:sobre|do|da)\s+(?:(?:o|a)\s+)?(?:meu|minha|projeto|tcc|naty)\b", plain):
             query = re.sub(r"^.*?\bsabe\s+(?:sobre|do|da)\s+", "", clean, flags=re.I).strip(" ?.!")
             return Intent(intents.OBSIDIAN_QUERY, {"query": query}, raw_text=raw)
         open_app = re.search(r"\b(?:abre|abra|abrir)\s+(?:o\s+|a\s+)?(spotify|musica|player|obsidian|youtube|chatgpt|gmail)\b", plain)
@@ -226,4 +228,11 @@ class RuleParser:
         if m: return Intent(intents.PROJECT_OVERDUE, {"name": m.group(1).strip()}, raw_text=raw)
         m = re.search(r"(?:anota|anote)\s+(.+?)(?:\s+no\s+projeto\s+(.+))?$", clean, re.I)
         if m: return Intent(intents.CREATE_NOTE, {"content": m.group(1).strip(), "project": m.group(2)}, raw_text=raw)
+        question = re.match(r"^(?:quem|o que (?:e|sao)|qual|quais|quando|onde|por que|porque|para que serve|como funciona|como usar)\b", plain)
+        if question or clean.endswith("?"):
+            current = bool(re.search(
+                r"\b(?:mais recente|ultima versao|versao atual|atualmente|hoje|agora|noticias?|cotacao|preco atual|em 20\d{2})\b",
+                plain,
+            ))
+            return Intent(intents.RESEARCH if current else intents.QUESTION, {"query": clean.strip(" ?.!"), "current": current}, raw_text=raw)
         return Intent(intents.UNKNOWN, confidence=0.0, raw_text=raw)

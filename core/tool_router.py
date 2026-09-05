@@ -134,7 +134,8 @@ class ToolRouter:
         if name == intents.OPEN_APP and self.windows: return self.windows.open_app(e["app"])
         if name == intents.MEDIA_CONTROL and self.windows: return self.windows.media(e["action"])
         if name == intents.DELEGATE and self.windows: return self.windows.delegate(e.get("query", intent.raw_text))
-        if name in {intents.RESEARCH, intents.COMPARE}: return self.research.search(e["query"], compare=name == intents.COMPARE, read_pages=name == intents.COMPARE)
+        if name in {intents.QUESTION, intents.RESEARCH, intents.COMPARE}:
+            return self.research.search(e["query"], compare=name == intents.COMPARE, read_pages=name in {intents.QUESTION, intents.COMPARE})
         if name == intents.SAVE_RESEARCH: return self.research.save_last_to_obsidian()
         if name == intents.OPEN_RESEARCH_BROWSER: return self.research.open_last_in_browser()
         if name == intents.HELP:

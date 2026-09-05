@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
+from core.context import SessionContext
 from knowledge.context import ContextNote, ContextPack
 from learning.manager import LearningManager
 
@@ -27,11 +28,16 @@ class Obsidian:
 class DelegationLearningTests(unittest.TestCase):
     def test_delegation_uses_relevant_context_and_redacts_secrets(self):
         copied, opened = [], []
-        result = ChatGPTWebProvider(Retriever(), copied.append, opened.append).prepare("Devo focar em Java?")
+        session = SessionContext()
+        session.remember_turn("Onde paramos?", "No roteador inteligente.")
+        session.update_active_app({"process_name": "code", "window_title": "NATY", "window_handle": 10})
+        result = ChatGPTWebProvider(Retriever(), copied.append, opened.append, session).prepare("Devo focar em Java?")
         self.assertTrue(result.ok)
         self.assertEqual(opened, ["https://chatgpt.com/"])
         self.assertIn("# Contexto preparado pela NATY", copied[0])
         self.assertIn("Projeto relacionado:\nNATY", copied[0])
+        self.assertIn("Contexto recente da sessão", copied[0])
+        self.assertIn("code — NATY", copied[0])
         self.assertNotIn("segredo-que-nao-pode-sair", copied[0])
 
     def test_external_result_is_structured_before_saving(self):

@@ -67,7 +67,9 @@ class ResearchTool:
                     f"Conclusão\n{comparison.get('conclusion', '')}"
                 )
             else:
-                message = f"Encontrei {len(items)} resultado(s):\n" + "\n".join(lines)
+                summary = payload.get("summary", "").strip()
+                lead = f"Segundo as fontes, {summary}" if summary else "Segundo as fontes consultadas:"
+                message = f"{lead}\n\nEncontrei {len(items)} resultado(s):\n" + "\n".join(lines)
             sources = [{"title": i.title, "url": i.url, "domain": urlparse(i.url).netloc,
                         "retrieved_at": i.observed_at} for i in items]
             return ToolResult(True, message, payload, sources=sources, type="deep_research" if compare else "research")

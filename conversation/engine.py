@@ -19,7 +19,22 @@ class ConversationEngine:
     def respond(self, text: str) -> ToolResult:
         plain = _plain(text); state = self.context.state
         if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)(?:\s+naty)?[!. ]*", plain):
-            return ToolResult(True, "Oi! O que você precisa?", type="chat")
+            if plain.startswith("bom dia"): message = "Bom dia. O que você precisa?"
+            elif plain.startswith("boa tarde"): message = "Boa tarde. O que você precisa?"
+            elif plain.startswith("boa noite"): message = "Boa noite. O que você precisa?"
+            else: message = "Oi! O que você precisa?"
+            return ToolResult(True, message, type="chat")
+        studying = re.fullmatch(r"(?:eu )?quero estudar\s+(.+?)[!. ]*", text.strip(), re.I)
+        if studying:
+            subject = studying.group(1).strip(" .")
+            state["conversation_subject"] = subject
+            return ToolResult(True, f"Quer apenas conversar sobre {subject} ou quer que eu coloque no seu planejamento?", type="chat")
+        working = re.search(r"\bestou trabalhando (?:no|na|em) (?:meu |o |a )?(?:projeto )?(.+?)[!. ]*$", text.strip(), re.I)
+        if working:
+            project = working.group(1).strip(" .")
+            state["active_project_hint"] = project
+            return ToolResult(True, f"Entendi. Vou considerar {project} como o projeto em foco nesta conversa.",
+                              {"project": project}, type="chat")
         if state.get("pending_memory_delete") and plain in {"sim", "confirmo", "pode"}:
             memory_id = state.pop("pending_memory_delete"); self.memories.delete(memory_id)
             return ToolResult(True, "Esqueci essa informação.")
