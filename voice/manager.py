@@ -9,6 +9,8 @@ from config import Settings
 from voice.devices import friendly_audio_error
 from voice.sapi_tts import SapiTTS
 from voice.vosk_stt import VoskSTT
+from voice.whisper_cpp import WhisperCppSTT
+from voice.piper_tts import PiperTTS
 
 
 @dataclass(slots=True)
@@ -42,10 +44,17 @@ class VoiceSession:
 class VoiceSessionManager:
     def __init__(self, settings: Settings, stt=None, tts=None):
         self.settings = settings
-        self.tts = tts or SapiTTS(settings.voice, settings.voice_rate, settings.voice_volume)
-        self.stt = stt or VoskSTT(settings.vosk_model_path, unload_after_use=False,
-                                  device=settings.microphone_device, microphone_gain=settings.microphone_gain,
-                                  automatic_gain=settings.automatic_gain_enabled)
+        neural_tts = PiperTTS(getattr(settings, "piper_executable_path", "piper"), getattr(settings, "piper_model_path", ""))
+        self.tts = tts or (neural_tts if settings.tts_provider == "piper" and neural_tts.available()
+                           else SapiTTS(settings.voice, settings.voice_rate, settings.voice_volume))
+        whisper = WhisperCppSTT(settings.whisper_executable_path, settings.whisper_model_path,
+            device=settings.microphone_device, microphone_gain=settings.microphone_gain,
+            automatic_gain=settings.automatic_gain_enabled, pre_roll_ms=settings.pre_roll_ms,
+            end_silence_ms=settings.end_silence_ms, max_utterance_seconds=settings.max_utterance_seconds)
+        self.stt = stt or (whisper if settings.stt_provider == "whisper_cpp" and whisper.available()
+                           else VoskSTT(settings.vosk_model_path, unload_after_use=False,
+                               device=settings.microphone_device, microphone_gain=settings.microphone_gain,
+                               automatic_gain=settings.automatic_gain_enabled))
         followup = max(5, min(15, int(settings.conversation_followup_seconds)))
         self.session = VoiceSession(followup)
         self.active = False

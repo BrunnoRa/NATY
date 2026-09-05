@@ -83,20 +83,25 @@ def measure_microphone_level(
         import sounddevice as sd
     except ImportError:
         return {"ok": False, "peak": 0.0, "reason": "O pacote sounddevice não está instalado."}
-    levels: list[float] = []
-
-    def callback(indata, frames, time_info, status):
-        level = audio_level(bytes(indata)); levels.append(level)
-        if on_level: on_level(level)
-
-    kwargs = {"samplerate": sample_rate, "blocksize": 1600, "dtype": "int16", "channels": 1, "callback": callback}
-    if device_id >= 0: kwargs["device"] = device_id
     started = time.perf_counter()
     try:
-        with sd.RawInputStream(**kwargs):
-            sd.sleep(max(1, int(duration * 1000)))
-    except Exception as exc:
-        return {"ok": False, "peak": max(levels or [0.0]), "latency_ms": (time.perf_counter() - started) * 1000,
-                "reason": friendly_audio_error(exc)}
-    return {"ok": True, "peak": max(levels or [0.0]), "latency_ms": (time.perf_counter() - started) * 1000,
-            "reason": "Áudio capturado."}
+        selected = device_id if device_id >= 0 else None
+        native_rate = int(sd.query_devices(selected, "input").get("default_samplerate", sample_rate))
+    except Exception:
+        native_rate = sample_rate
+    last_error = None
+    for rate in dict.fromkeys((sample_rate, native_rate)):
+        levels: list[float] = []
+        def callback(indata, frames, time_info, status):
+            level = audio_level(bytes(indata)); levels.append(level)
+            if on_level: on_level(level)
+        kwargs = {"samplerate": rate, "blocksize": max(800, rate // 10), "dtype": "int16", "channels": 1, "callback": callback}
+        if device_id >= 0: kwargs["device"] = device_id
+        try:
+            with sd.RawInputStream(**kwargs): sd.sleep(max(1, int(duration * 1000)))
+            return {"ok": True, "peak": max(levels or [0.0]), "sample_rate": rate,
+                    "latency_ms": (time.perf_counter() - started) * 1000, "reason": "Áudio capturado."}
+        except Exception as exc:
+            last_error = exc
+    return {"ok": False, "peak": 0.0, "sample_rate": native_rate,
+            "latency_ms": (time.perf_counter() - started) * 1000, "reason": friendly_audio_error(last_error or "erro desconhecido")}

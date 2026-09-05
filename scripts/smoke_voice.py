@@ -23,14 +23,16 @@ def main() -> int:
     settings = Settings.load()
     devices = list_microphones()
     voices = SapiTTS.list_voices()
-    selected = next((device for device in devices if device["id"] == settings.microphone_device), None)
+    effective_device = settings.microphone_device if settings.microphone_device >= 0 else default_input_device_id()
+    selected = next((device for device in devices if device["id"] == effective_device), None)
 
     print(f"Dispositivo padrão: {default_input_device_id()}")
     for device in devices:
-        marker = "*" if device["id"] == settings.microphone_device else " "
+        marker = "*" if device["id"] == effective_device else " "
         print(f"{marker} [{device['id']}] {device['name']} · {device['hostapi']} · "
               f"{device['channels']} canal(is) · {device['default_samplerate']} Hz")
     print(f"Selecionado: {selected['name'] if selected else 'indisponível'}")
+    print(f"Provider STT configurado: {settings.stt_provider}")
     print(f"Vosk instalado/modelo: {VoskSTT(settings.vosk_model_path).available()} · {settings.vosk_model_path}")
     print(f"Ganho: {'automático' if settings.automatic_gain_enabled else 'fixo'} · máximo {settings.microphone_gain:.1f}x")
     print("Vozes SAPI:")

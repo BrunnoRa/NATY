@@ -39,8 +39,14 @@ class Settings:
     wake_word_enabled: bool = False
     tts_enabled: bool = True
     tts_provider: str = "sapi"
-    stt_provider: str = "vosk"
+    stt_provider: str = "whisper_cpp"
     vosk_model_path: str = ""
+    whisper_executable_path: str = ""
+    whisper_model_path: str = ""
+    pre_roll_ms: int = 300
+    end_silence_ms: int = 1100
+    max_utterance_seconds: int = 20
+    voice_model_idle_seconds: int = 30
     microphone_device: int = -1
     microphone_gain: float = 12.0
     automatic_gain_enabled: bool = True

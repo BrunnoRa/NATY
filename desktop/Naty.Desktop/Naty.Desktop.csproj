@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Naty.Desktop</AssemblyName>
+    <RootNamespace>Naty.Desktop</RootNamespace>
+    <ApplicationIcon>..\..\assets\naty.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="..\..\assets\naty.ico" Link="Assets\naty.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="..\..\assets\naty_32.png" Link="Assets\naty_32.png" />
+    <Resource Include="..\..\assets\naty_128.png" Link="Assets\naty_128.png" />
+  </ItemGroup>
+</Project>

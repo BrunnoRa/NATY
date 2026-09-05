@@ -25,7 +25,7 @@ class VoskSTT(STTProvider):
         self.last_gain = 1.0
 
     def available(self) -> bool:
-        if not Path(self.model_path).is_dir(): return False
+        if not self.model_path or not Path(self.model_path).is_dir(): return False
         try: import vosk, sounddevice  # noqa: F401
         except ImportError: return False
         return True
