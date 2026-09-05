@@ -6,7 +6,7 @@ import re
 
 from ai.llama_cpp import LlamaCppProvider
 from ai.no_ai import NoAIProvider
-from config import Settings
+from config import Settings, app_root
 from core.context import SessionContext
 from core.event_bus import EventBus
 from core.intent_router import IntentRouter
@@ -56,6 +56,8 @@ from tools.briefing import BriefingTool
 from tools.workspaces import WorkspaceExecutor, WorkspaceTool
 from tools.notifications import NotificationTool
 from tools.active_context import ActiveContextTool
+from tools.clipboard import ClipboardTool
+from tools.safe_files import SafeFileAssistant
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
@@ -123,6 +125,11 @@ class NatyAssistant:
             temporal_memory=TemporalMemoryTool(self.temporal_repo))
         self.tool_router.notifications = NotificationTool(self.notification_repo)
         self.tool_router.active_context = ActiveContextTool(self.context)
+        self.tool_router.clipboard = ClipboardTool(research=research_tool, obsidian=self.obsidian)
+        self.tool_router.safe_files = SafeFileAssistant(
+            self.settings.safe_file_roots, opener=self.tool_router.windows.opener,
+            context=self.context, project_root=app_root(),
+        )
         self.ai = LlamaCppProvider(self.settings.ai_model_path, self.settings.ai_threads, self.settings.ai_context_size,
             self.settings.ai_idle_unload_seconds, self.settings.ai_max_ram_mb, self.settings.ai_min_available_ram_mb) if self.settings.ai_enabled else NoAIProvider()
         self.obsidian_index = ObsidianIndex(

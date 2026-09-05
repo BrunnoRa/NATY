@@ -20,6 +20,8 @@ class ToolRouter:
         self.workspaces = workspaces
         self.notifications = notifications
         self.active_context = None
+        self.clipboard = None
+        self.safe_files = None
         self.pending_confirmation: tuple[str, dict] | None = None
 
     def execute(self, intent: Intent) -> ToolResult:
@@ -30,7 +32,7 @@ class ToolRouter:
             return ToolResult(True, "Cancelado.")
         if name == intents.CONFIRM:
             if not self.pending_confirmation: return ToolResult(False, "Não há nenhuma ação aguardando confirmação.")
-            action, _ = self.pending_confirmation; self.pending_confirmation = None
+            action, confirmation = self.pending_confirmation; self.pending_confirmation = None
             if action == "delete_all_tasks":
                 count = self.tasks.repo.delete_all()
                 return ToolResult(True, f"Apaguei {count} tarefa(s).")
@@ -38,6 +40,8 @@ class ToolRouter:
                 return self.google.send_last_draft(confirmed=True)
             if action == "disconnect_google" and self.google:
                 return self.google.disconnect(confirmed=True)
+            if action == "safe_file_delete" and self.safe_files:
+                return self.safe_files.recycle_confirmed(confirmation["path"])
         if name == intents.DELETE_ALL_TASKS:
             self.pending_confirmation = ("delete_all_tasks", {})
             return ToolResult(False, "Isso apagará todas as tarefas. Diga 'sim' para confirmar ou 'cancelar'.")
@@ -111,6 +115,19 @@ class ToolRouter:
         if name == intents.ACTIVE_CONTEXT_STATUS and self.active_context: return self.active_context.show()
         if name == intents.ACTIVE_CONTEXT_RETURN and self.active_context: return self.active_context.return_to_previous()
         if name == intents.ACTIVE_CONTEXT_PROJECT and self.active_context: return self.active_context.return_to_previous(project_only=True)
+        if name == intents.CLIPBOARD_SHOW and self.clipboard: return self.clipboard.show()
+        if name == intents.CLIPBOARD_SUMMARIZE and self.clipboard: return self.clipboard.summarize()
+        if name == intents.CLIPBOARD_RESEARCH and self.clipboard: return self.clipboard.research_text()
+        if name == intents.CLIPBOARD_SAVE and self.clipboard: return self.clipboard.save_to_obsidian()
+        if name == intents.FILE_OPEN_FOLDER and self.safe_files: return self.safe_files.open_folder(e.get("root", ""))
+        if name == intents.FILE_FIND and self.safe_files: return self.safe_files.find(e.get("query", ""))
+        if name == intents.FILE_RECENT and self.safe_files: return self.safe_files.find("", e.get("root"), recent=True)
+        if name == intents.FILE_OPEN_LAST and self.safe_files: return self.safe_files.open_last()
+        if name == intents.FILE_DELETE and self.safe_files:
+            result = self.safe_files.request_delete(e.get("query", ""))
+            if isinstance(result.data, dict) and result.data.get("path"):
+                self.pending_confirmation = ("safe_file_delete", {"path": result.data["path"]})
+            return result
         if name == intents.OBSIDIAN_QUERY and self.knowledge: return self.knowledge.query(e.get("query", ""))
         if name == intents.CREATE_AUTOMATION and self.automations: return self.automations.create(**e)
         if name == intents.OPEN_APP and self.windows: return self.windows.open_app(e["app"])

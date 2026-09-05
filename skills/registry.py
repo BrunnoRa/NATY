@@ -44,6 +44,8 @@ def build_registry(tool_router) -> SkillRegistry:
         "workspaces": ((i.WORKSPACE_CREATE,i.WORKSPACE_CONFIGURE,i.WORKSPACE_ACTIVATE,i.WORKSPACE_END,i.WORKSPACE_LIST), ("sqlite:workspaces", "windows:allowlist")),
         "notifications": ((i.NOTIFICATION_LIST,), ("sqlite:notifications-read",)),
         "active_context": ((i.ACTIVE_CONTEXT_STATUS,i.ACTIVE_CONTEXT_RETURN,i.ACTIVE_CONTEXT_PROJECT), ("windows:active-window-metadata",)),
+        "clipboard": ((i.CLIPBOARD_SHOW,i.CLIPBOARD_SUMMARIZE,i.CLIPBOARD_RESEARCH,i.CLIPBOARD_SAVE), ("windows:clipboard-explicit",)),
+        "safe_files": ((i.FILE_OPEN_FOLDER,i.FILE_FIND,i.FILE_RECENT,i.FILE_OPEN_LAST,i.FILE_DELETE), ("filesystem:configured-roots", "confirmation:delete")),
         "google_workspace": ((i.CONNECT_GOOGLE,i.DISCONNECT_GOOGLE,i.GMAIL_SEARCH,i.GMAIL_DRAFT,i.GMAIL_SEND,i.GOOGLE_CALENDAR_UPCOMING,i.GOOGLE_CALENDAR_FREE), ("oauth:google","gmail:scoped","calendar:scoped")),
     }
     registry = SkillRegistry()

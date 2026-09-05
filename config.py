@@ -99,6 +99,7 @@ class Settings:
     quiet_hours_enabled: bool = False
     quiet_hours_start: str = "22:00"
     quiet_hours_end: str = "07:00"
+    safe_file_roots: str = ""
     close_to_tray: bool = True
     chatgpt_handoff_enabled: bool = True
     sync_enabled: bool = False

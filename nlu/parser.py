@@ -58,6 +58,24 @@ class RuleParser:
             return Intent(intents.ACTIVE_CONTEXT_RETURN, raw_text=raw)
         if re.search(r"\b(?:abre|abra) o projeto que eu estava (?:usando|fazendo)\b", plain):
             return Intent(intents.ACTIVE_CONTEXT_PROJECT, raw_text=raw)
+        if re.search(r"\b(?:resume|resuma) (?:o que esta n[ao]|o que tem n[ao]) area de transferencia\b", plain):
+            return Intent(intents.CLIPBOARD_SUMMARIZE, raw_text=raw)
+        if re.search(r"\bpesquisa (?:isso|o que) (?:que )?eu copiei\b", plain):
+            return Intent(intents.CLIPBOARD_RESEARCH, raw_text=raw)
+        if re.search(r"\bsalva (?:isso|o que eu copiei) no obsidian\b", plain):
+            return Intent(intents.CLIPBOARD_SAVE, raw_text=raw)
+        if re.search(r"\b(?:o que (?:eu )?copiei|o que esta na area de transferencia)\b", plain):
+            return Intent(intents.CLIPBOARD_SHOW, raw_text=raw)
+        folder = re.search(r"\b(?:abre|abra) (?:a |minha )?pasta (downloads|documentos|desktop|area de trabalho)\b", plain)
+        if folder: return Intent(intents.FILE_OPEN_FOLDER, {"root": folder.group(1)}, raw_text=raw)
+        if re.search(r"\b(?:mostra|liste) (?:os )?arquivos recentes (?:do|da) projeto naty\b", plain):
+            return Intent(intents.FILE_RECENT, {"root": "naty"}, raw_text=raw)
+        found_file = re.search(r"\b(?:encontra|encontre|procura|procure) (?:o )?arquivo (.+?)[.!]?$", clean, re.I)
+        if found_file: return Intent(intents.FILE_FIND, {"query": found_file.group(1).strip()}, raw_text=raw)
+        if re.search(r"\b(?:abre|abra) (?:esse|este|o ultimo) arquivo\b", plain):
+            return Intent(intents.FILE_OPEN_LAST, raw_text=raw)
+        delete_file = re.search(r"\b(?:exclui|exclua|apaga|apague) (?:o )?arquivo (.+?)[.!]?$", clean, re.I)
+        if delete_file: return Intent(intents.FILE_DELETE, {"query": delete_file.group(1).strip()}, raw_text=raw)
         if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)(?:\s+naty)?[!. ]*", plain):
             return Intent(intents.CHAT, {"kind": "greeting"}, raw_text=raw)
         if re.search(r"\b(que horas sao|qual (?:e )?a hora|hora agora)\b", plain):

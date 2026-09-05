@@ -19,6 +19,7 @@ class CoreRequestHandler:
         "proactivity_level", "privacy_mode",
         "daily_briefing_enabled", "daily_briefing_time",
         "quiet_hours_enabled", "quiet_hours_start", "quiet_hours_end",
+        "safe_file_roots",
     }
     SETTINGS_ENUMS = {
         "learning_mode": {"manual", "assisted", "automatic_safe"},

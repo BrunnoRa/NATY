@@ -49,6 +49,7 @@ class FakeSettings:
     quiet_hours_enabled = False
     quiet_hours_start = "22:00"
     quiet_hours_end = "07:00"
+    safe_file_roots = ""
     privacy_mode = True
     data_dir = "data"
     managed_obsidian_path = None

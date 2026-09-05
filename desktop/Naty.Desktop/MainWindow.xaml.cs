@@ -298,6 +298,16 @@ public partial class MainWindow : Window
                 var windowCaption = activeApp.TryGetProperty("window_title", out var windowTitle) ? windowTitle.GetString() ?? "" : "";
                 _viewModel.ContextItems.Add(new ContextItem(name, windowCaption));
             }
+            else if (panel == "clipboard")
+            {
+                var clipboardText = data.TryGetProperty("summary", out var summaryValue) ? summaryValue.GetString() :
+                                    data.TryGetProperty("text", out var textValue) ? textValue.GetString() : "";
+                _viewModel.ContextItems.Add(new ContextItem("Texto", clipboardText ?? ""));
+            }
+            else if (panel == "files")
+            {
+                AddObjectArray(data, "files", "name", "modified_at", "Arquivo");
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {

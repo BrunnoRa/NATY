@@ -22,8 +22,7 @@ class IntentRouter:
         groups = {
             RequestType.CHAT: {intents.CHAT},
             RequestType.QUESTION: {intents.TIME_QUERY, intents.GOOGLE_CALENDAR_FREE},
-            RequestType.LOCAL_ACTION: {intents.ADD_LIST_ITEMS, intents.CHECK_LIST_ITEM, intents.REMOVE_LIST_ITEM, intents.CLEAR_CHECKED},
-            RequestType.SEARCH: {intents.RESEARCH},
+            RequestType.LOCAL_ACTION: {intents.ADD_LIST_ITEMS, intents.CHECK_LIST_ITEM, intents.REMOVE_LIST_ITEM, intents.CLEAR_CHECKED,intents.CLIPBOARD_SAVE,intents.FILE_OPEN_FOLDER,intents.FILE_OPEN_LAST,intents.FILE_DELETE},
             RequestType.DEEP_RESEARCH: {intents.COMPARE},
             RequestType.PLANNING: {intents.SHOW_DAY, intents.NEXT_TASK,intents.PLAN_NOW,intents.PLAN_TIME,intents.DAILY_BRIEFING},
             RequestType.TASK: {intents.CREATE_TASK, intents.LIST_TASKS, intents.COMPLETE_TASK, intents.COMPLETE_LAST, intents.UPDATE_LAST, intents.POSTPONE_LAST},
@@ -34,7 +33,8 @@ class IntentRouter:
             RequestType.AUTOMATION: {intents.CREATE_AUTOMATION},
             RequestType.DELEGATE: {intents.DELEGATE},
             RequestType.SYSTEM: {intents.SYSTEM_STATUS, intents.SYSTEM_DIAGNOSIS},
-            RequestType.CONTEXT: {intents.TEMPORAL_RECALL, intents.NOTIFICATION_LIST,intents.ACTIVE_CONTEXT_STATUS,intents.ACTIVE_CONTEXT_RETURN,intents.ACTIVE_CONTEXT_PROJECT},
+            RequestType.CONTEXT: {intents.TEMPORAL_RECALL, intents.NOTIFICATION_LIST,intents.ACTIVE_CONTEXT_STATUS,intents.ACTIVE_CONTEXT_RETURN,intents.ACTIVE_CONTEXT_PROJECT,intents.CLIPBOARD_SHOW,intents.CLIPBOARD_SUMMARIZE},
+            RequestType.SEARCH: {intents.RESEARCH,intents.CLIPBOARD_RESEARCH,intents.FILE_FIND,intents.FILE_RECENT},
             RequestType.WORKSPACE: {intents.WORKSPACE_CREATE,intents.WORKSPACE_CONFIGURE,intents.WORKSPACE_ACTIVATE,intents.WORKSPACE_END,intents.WORKSPACE_LIST},
         }
         for kind, names in groups.items():
