@@ -55,6 +55,7 @@ from tools.temporal_memory import TemporalMemoryTool
 from tools.briefing import BriefingTool
 from tools.workspaces import WorkspaceExecutor, WorkspaceTool
 from tools.notifications import NotificationTool
+from tools.active_context import ActiveContextTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
@@ -121,6 +122,7 @@ class NatyAssistant:
             planning=PlanningTool(self.db, task_tool, reminder_repo), system_status=SystemStatusTool(),
             temporal_memory=TemporalMemoryTool(self.temporal_repo))
         self.tool_router.notifications = NotificationTool(self.notification_repo)
+        self.tool_router.active_context = ActiveContextTool(self.context)
         self.ai = LlamaCppProvider(self.settings.ai_model_path, self.settings.ai_threads, self.settings.ai_context_size,
             self.settings.ai_idle_unload_seconds, self.settings.ai_max_ram_mb, self.settings.ai_min_available_ram_mb) if self.settings.ai_enabled else NoAIProvider()
         self.obsidian_index = ObsidianIndex(
@@ -169,6 +171,9 @@ class NatyAssistant:
         )
         self.state = AppState.IDLE
         self.diagnostics = DiagnosticService(self)
+
+    def update_active_context(self, value: dict | None) -> None:
+        self.context.update_active_app(value)
 
     def handle_result(self, text: str) -> ToolResult:
         self.state = AppState.PROCESSING; self.events.publish("state", self.state)

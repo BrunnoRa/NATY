@@ -19,6 +19,7 @@ class ToolRouter:
         self.briefing = briefing
         self.workspaces = workspaces
         self.notifications = notifications
+        self.active_context = None
         self.pending_confirmation: tuple[str, dict] | None = None
 
     def execute(self, intent: Intent) -> ToolResult:
@@ -107,6 +108,9 @@ class ToolRouter:
         if name == intents.WORKSPACE_LIST and self.workspaces: return self.workspaces.list()
         if name == intents.NOTIFICATION_LIST and self.notifications:
             return self.notifications.show(bool(e.get("important_only")))
+        if name == intents.ACTIVE_CONTEXT_STATUS and self.active_context: return self.active_context.show()
+        if name == intents.ACTIVE_CONTEXT_RETURN and self.active_context: return self.active_context.return_to_previous()
+        if name == intents.ACTIVE_CONTEXT_PROJECT and self.active_context: return self.active_context.return_to_previous(project_only=True)
         if name == intents.OBSIDIAN_QUERY and self.knowledge: return self.knowledge.query(e.get("query", ""))
         if name == intents.CREATE_AUTOMATION and self.automations: return self.automations.create(**e)
         if name == intents.OPEN_APP and self.windows: return self.windows.open_app(e["app"])

@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(1) };
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromSeconds(5) };
     private readonly DispatcherTimer _voicePoll = new() { Interval = TimeSpan.FromMilliseconds(220) };
+    private readonly ActiveWindowService _activeContext = new();
     private TrayService? _tray;
     private bool _exiting;
     private string _lastVoiceResponse = "";
@@ -130,12 +131,13 @@ public partial class MainWindow : Window
         try
         {
             if (!_core.IsConnected && !await _core.EnsureConnectedAsync()) throw new InvalidOperationException("Core desconectado");
-            var response = await _core.RequestAsync("user_input", new { text }, timeoutMilliseconds: 30000);
+            var response = await _core.RequestAsync("user_input", new { text, active_app = _activeContext.GetForRequest() }, timeoutMilliseconds: 30000);
             var answer = response.Payload.GetProperty("text").GetString() ?? "";
             _viewModel.Response = answer; _hud.UpdateState("IDLE", answer);
             await RefreshDashboardAsync();
             if (response.Payload.TryGetProperty("graph", out var graph)) SetGraph(graph);
             ApplyPresentation(response.Payload);
+            ApplyNativeAction(response.Payload);
         }
         catch (Exception exc)
         {
@@ -154,7 +156,7 @@ public partial class MainWindow : Window
         try
         {
             if (!_core.IsConnected && !await _core.EnsureConnectedAsync()) throw new InvalidOperationException("Core desconectado");
-            var response = await _core.RequestAsync("voice_start", timeoutMilliseconds: 3000);
+            var response = await _core.RequestAsync("voice_start", new { active_app = _activeContext.GetForRequest() }, timeoutMilliseconds: 3000);
             ApplyVoiceStatus(response.Payload);
             _voicePoll.Start();
         }
@@ -290,6 +292,12 @@ public partial class MainWindow : Window
             {
                 AddObjectArray(data, "notifications", "title", "message", "NATY");
             }
+            else if (panel == "active_context" && data.TryGetProperty("active_app", out var activeApp))
+            {
+                var name = activeApp.TryGetProperty("process_name", out var process) ? process.GetString() ?? "Aplicativo" : "Aplicativo";
+                var windowCaption = activeApp.TryGetProperty("window_title", out var windowTitle) ? windowTitle.GetString() ?? "" : "";
+                _viewModel.ContextItems.Add(new ContextItem(name, windowCaption));
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {
@@ -307,6 +315,14 @@ public partial class MainWindow : Window
             }
         }
         ContextDrawer.Visibility = Visibility.Visible;
+    }
+
+    private static void ApplyNativeAction(JsonElement payload)
+    {
+        if (!payload.TryGetProperty("data", out var data) || data.ValueKind != JsonValueKind.Object) return;
+        if (!data.TryGetProperty("action", out var action) || action.GetString() != "activate_window") return;
+        if (data.TryGetProperty("window_handle", out var handle) && handle.TryGetInt64(out var rawHandle))
+            ActiveWindowService.TryActivate(rawHandle);
     }
 
     private void AddObjectArray(JsonElement data, string property, string titleProperty, string detailProperty, string fallback)
@@ -339,7 +355,7 @@ public partial class MainWindow : Window
     private void ToggleMaximize() => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
     private async void Close_Click(object sender, RoutedEventArgs e) { if (_closeToTray) HideToTray(); else await ExitAsync(); }
 
-    private void ShowDashboard() { Show(); WindowState = WindowState.Normal; Activate(); Graph.SetPaused(false); }
+    private void ShowDashboard() { _activeContext.RememberForeground(); Show(); WindowState = WindowState.Normal; Activate(); Graph.SetPaused(false); }
     private void HideToTray() { Hide(); Graph.SetPaused(true); }
     private void OnClosing(object? sender, CancelEventArgs e) { if (!_exiting) { e.Cancel = true; HideToTray(); } }
 
@@ -352,7 +368,7 @@ public partial class MainWindow : Window
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == 0x0312 && wParam.ToInt32() == HotkeyId) { _ = StartVoiceAsync(); handled = true; }
+        if (msg == 0x0312 && wParam.ToInt32() == HotkeyId) { _activeContext.RememberForeground(); _ = StartVoiceAsync(); handled = true; }
         return IntPtr.Zero;
     }
 

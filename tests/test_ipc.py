@@ -80,7 +80,9 @@ class FakeAssistant:
     task_repo = FakeRepo([{"id": 1, "title": "Real"}])
     project_repo = FakeRepo()
     list_repo = FakeRepo()
+    active_context = None
     def handle(self, text): return f"Resposta: {text}"
+    def update_active_context(self, value): self.active_context = value
 
 
 class IPCProtocolTests(unittest.TestCase):
@@ -99,10 +101,13 @@ class IPCProtocolTests(unittest.TestCase):
             decode_message(json.dumps({"protocol": 1, "type": "ping", "request_id": "1", "payload": []}))
 
     def test_user_input_returns_core_answer(self):
-        response = CoreRequestHandler(FakeAssistant()).handle(request("user_input", {"text": "olá"}, "7"))
+        assistant = FakeAssistant()
+        active = {"process_name": "code", "window_title": "NATY"}
+        response = CoreRequestHandler(assistant).handle(request("user_input", {"text": "olá", "active_app": active}, "7"))
         self.assertEqual(response["type"], "assistant_response")
         self.assertEqual(response["request_id"], "7")
         self.assertEqual(response["payload"]["text"], "Resposta: olá")
+        self.assertEqual(assistant.active_context, active)
 
     def test_dashboard_contains_real_repository_data(self):
         response = CoreRequestHandler(FakeAssistant()).handle(request("dashboard", request_id="8"))

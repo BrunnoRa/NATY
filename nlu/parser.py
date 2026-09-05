@@ -52,6 +52,12 @@ class RuleParser:
             return Intent(intents.NOTIFICATION_LIST, {"important_only": True}, raw_text=raw)
         if re.search(r"\b(?:o que eu perdi|mostra (?:minhas )?notificacoes|quais (?:sao )?minhas notificacoes)\b", plain):
             return Intent(intents.NOTIFICATION_LIST, {"important_only": False}, raw_text=raw)
+        if re.search(r"\b(?:em que (?:eu )?estou trabalhando|qual programa (?:esta|ta) aberto agora|em que programa (?:eu )?estou|aplicativo ativo)\b", plain):
+            return Intent(intents.ACTIVE_CONTEXT_STATUS, raw_text=raw)
+        if re.search(r"\b(?:volta|volte) (?:para|pro) (?:o que eu estava fazendo|aplicativo anterior|programa anterior)\b", plain):
+            return Intent(intents.ACTIVE_CONTEXT_RETURN, raw_text=raw)
+        if re.search(r"\b(?:abre|abra) o projeto que eu estava (?:usando|fazendo)\b", plain):
+            return Intent(intents.ACTIVE_CONTEXT_PROJECT, raw_text=raw)
         if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)(?:\s+naty)?[!. ]*", plain):
             return Intent(intents.CHAT, {"kind": "greeting"}, raw_text=raw)
         if re.search(r"\b(que horas sao|qual (?:e )?a hora|hora agora)\b", plain):

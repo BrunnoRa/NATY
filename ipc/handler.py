@@ -184,9 +184,13 @@ class CoreRequestHandler:
         if type_ == "graph":
             return response(message, "graph", self._graph())
         if type_ == "user_input":
+            if hasattr(self.assistant, "update_active_context"):
+                self.assistant.update_active_context(message["payload"].get("active_app"))
             text = str(message["payload"].get("text", "")).strip()
             return response(message, "assistant_response", self._execute_text(text))
         if type_ == "voice_start":
+            if hasattr(self.assistant, "update_active_context"):
+                self.assistant.update_active_context(message["payload"].get("active_app"))
             return response(message, "voice_status", self._voice_controller().start())
         if type_ == "voice_status":
             return response(message, "voice_status", self._voice_controller().snapshot())
