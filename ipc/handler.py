@@ -141,6 +141,7 @@ class CoreRequestHandler:
             for item in data.get(collection, []) if isinstance(data.get(collection), list) else []:
                 if isinstance(item, dict):
                     terms.extend(str(item[key]) for key in ("title", "name", "text") if item.get(key))
+        terms.extend(str(term) for term in data.get("_graph_terms", ()) if str(term).strip())
         return terms
 
     def _dashboard(self) -> dict:

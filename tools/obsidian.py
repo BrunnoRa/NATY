@@ -117,3 +117,12 @@ class ObsidianTool:
             for key, value in entry.items())
         atomic_write(path, replace_managed_block(existing, block))
         return path
+
+    def sync_skill_gaps(self, gaps: list[dict]) -> Path | None:
+        if not self.available: return None
+        self.initialize()
+        path = self._managed_path("00 - Sistema", "Skills Sugeridas.md")
+        existing = path.read_text(encoding="utf-8") if path.exists() else "# Skills Sugeridas\n"
+        block = "## Confirmadas pelo usuário\n\n" + ("\n".join(f"- [ ] {item['request_text']}" for item in gaps) if gaps else "Nenhuma.")
+        atomic_write(path, replace_managed_block(existing, block))
+        return path

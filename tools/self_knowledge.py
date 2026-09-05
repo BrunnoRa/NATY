@@ -26,6 +26,11 @@ class SelfKnowledgeTool:
         if "whisper" in plain:
             item = next(item for item in self.assistant.diagnostics.run()["items"] if item["name"] == "Whisper")
             return ToolResult(True, item["message"], {"component": "whisper", "state": item["state"]}, type="self_status")
+        if "quais skills" in plain or "skills ainda nao" in plain:
+            gaps = self.assistant.skill_gaps.list()
+            if not gaps: return ToolResult(True, "Nenhuma capacidade ausente foi confirmada por você até agora.", {"gaps": []}, type="skill_gaps")
+            return ToolResult(True, "Capacidades desejadas registradas: " + "; ".join(item["request_text"] for item in gaps[:8]) + ".",
+                              {"gaps": gaps}, type="skill_gaps")
         matched = next((skill for skill in skills if any(_plain(alias) in plain for alias in (skill["name"], *skill["aliases"]))), None)
         if matched and any(term in plain for term in ("consegue", "pode", "sabe")):
             detail = matched["description"]

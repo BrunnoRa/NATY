@@ -21,6 +21,15 @@ class AgentRouter:
 
     @staticmethod
     def _decorate(result: ToolResult, intent_name: str) -> ToolResult:
+        graph_terms = {
+            intents.SYSTEM_STATUS: ("Sistema",), intents.SYSTEM_DIAGNOSIS: ("Sistema",),
+            intents.WORKSPACE_ACTIVATE: ("Workspace",), intents.WORKSPACE_LIST: ("Workspace",),
+            intents.RESEARCH: ("Pesquisa", "Web"), intents.COMPARE: ("Pesquisa", "Web"),
+            intents.OBSIDIAN_QUERY: ("Obsidian",), intents.GMAIL_SEARCH: ("Gmail",),
+            intents.GOOGLE_CALENDAR_UPCOMING: ("Agenda",), intents.DAILY_BRIEFING: ("Briefing", "Agenda"),
+            intents.CLIPBOARD_SHOW: ("Clipboard",), intents.CLIPBOARD_SUMMARIZE: ("Clipboard",),
+        }.get(intent_name, ())
+        if graph_terms and isinstance(result.data, dict): result.data["_graph_terms"] = graph_terms
         panels = {
             intents.RESEARCH: ("context", "research", "Pesquisa"),
             intents.COMPARE: ("context", "research", "Comparação"),

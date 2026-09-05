@@ -125,6 +125,13 @@ MIGRATIONS: list[tuple[int, str]] = [
     CREATE TABLE IF NOT EXISTS proactivity_events(
       event_key TEXT PRIMARY KEY, last_shown TEXT NOT NULL, cooldown_minutes INTEGER NOT NULL);
     """),
+    (8, """
+    CREATE TABLE IF NOT EXISTS skill_gaps(
+      id INTEGER PRIMARY KEY, request_text TEXT NOT NULL, normalized_key TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'suggested', created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+    CREATE INDEX IF NOT EXISTS idx_skill_gaps_status ON skill_gaps(status,updated_at DESC);
+    """),
 ]
 
 

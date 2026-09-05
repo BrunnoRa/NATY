@@ -31,6 +31,7 @@ from knowledge.graph import KnowledgeGraph
 from knowledge.obsidian_index import ObsidianIndex
 from knowledge.retriever import ObsidianContextRetriever
 from skills.registry import build_registry
+from skills.gaps import SkillGapManager
 from tools.lists import ListsTool
 from tools.calendar import CalendarTool
 from tools.notes import NotesTool
@@ -131,6 +132,7 @@ class NatyAssistant:
             self.settings.safe_file_roots, opener=self.tool_router.windows.opener,
             context=self.context, project_root=app_root(),
         )
+        self.skill_gaps = SkillGapManager(self.db, self.context, self.obsidian)
         self.ai = LlamaCppProvider(self.settings.ai_model_path, self.settings.ai_threads, self.settings.ai_context_size,
             self.settings.ai_idle_unload_seconds, self.settings.ai_max_ram_mb, self.settings.ai_min_available_ram_mb) if self.settings.ai_enabled else NoAIProvider()
         self.obsidian_index = ObsidianIndex(
@@ -197,6 +199,10 @@ class NatyAssistant:
                 return result
             if self.learning.pending and plain in {"não", "nao", "cancelar", "cancela"}:
                 return self.learning.cancel()
+            if self.skill_gaps.pending and plain in {"sim", "confirmo", "pode", "pode registrar"}:
+                return self.skill_gaps.confirm()
+            if self.skill_gaps.pending and plain in {"não", "nao", "cancelar", "cancela"}:
+                return self.skill_gaps.cancel()
             import_match = re.search(r"(?is)^(?:importar resultado externo|resultado do chatgpt)\s*[:\n]\s*(.+)$", text.strip())
             if import_match:
                 result = self.external_importer.result(import_match.group(1))
@@ -206,6 +212,8 @@ class NatyAssistant:
             if candidate:
                 return self.learning.propose(candidate)
             result, route_name = self.agent_router.handle(text)
+            if result.error == "low_confidence":
+                result = self.skill_gaps.propose(text)
             try:
                 self._record_sync_result(result)
             except Exception:
