@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import json
+import gc
 from pathlib import Path
 import tempfile
+import time
 import unittest
 
 from database.connection import Database
@@ -28,7 +30,15 @@ class SyncManagerTest(unittest.TestCase):
     def tearDown(self):
         self.sync_a.stop()
         self.sync_b.stop()
-        self.temp.cleanup()
+        for attempt in range(3):
+            try:
+                self.temp.cleanup()
+                break
+            except OSError:
+                if attempt == 2:
+                    raise
+                gc.collect()
+                time.sleep(0.05)
 
     def test_device_identity_is_persistent_uuid_and_not_hostname(self):
         restored = DeviceIdentity.load_or_create(self.root / "device-a" / "identity.json", "outro-nome")
