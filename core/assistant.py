@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from logging.handlers import RotatingFileHandler
+import re
 
 from ai.llama_cpp import LlamaCppProvider
 from ai.no_ai import NoAIProvider
@@ -46,6 +47,8 @@ from connectors.google.gmail import GmailConnector
 from connectors.google.calendar import GoogleCalendarConnector
 from connectors.registry import ConnectorRegistry
 from tools.google_workspace import GoogleWorkspaceTool
+from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
+from learning.manager import LearningManager
 
 
 def setup_logging(settings: Settings) -> logging.Logger:
@@ -110,6 +113,11 @@ class NatyAssistant:
         except Exception: self.logger.exception("Falha ao gerar grafo")
         retriever = ObsidianContextRetriever(self.obsidian_index, project_repo, task_repo,
             self.settings.obsidian_max_notes, self.settings.obsidian_max_chars)
+        self.external_importer = ExternalResultImporter()
+        self.learning = LearningManager(self.memory_repo, self.obsidian, self.settings.learning_mode)
+        if self.tool_router.windows:
+            self.tool_router.windows.delegation = ChatGPTWebProvider(
+                retriever, self.tool_router.windows._copy_text, self.tool_router.windows.opener)
         self.tool_router.knowledge = KnowledgeQueryTool(retriever)
         self.conversation = ConversationEngine(context=self.context, tasks=task_repo, lists=list_repo,
             memories=self.memory_repo, planner=Planner(task_repo), retriever=retriever, ai=self.ai)
@@ -120,6 +128,19 @@ class NatyAssistant:
     def handle_result(self, text: str) -> ToolResult:
         self.state = AppState.PROCESSING; self.events.publish("state", self.state)
         try:
+            plain = text.strip().casefold()
+            if self.learning.pending and plain in {"sim", "confirmo", "pode", "pode fazer"}:
+                return self.learning.confirm()
+            if self.learning.pending and plain in {"não", "nao", "cancelar", "cancela"}:
+                return self.learning.cancel()
+            import_match = re.search(r"(?is)^(?:importar resultado externo|resultado do chatgpt)\s*[:\n]\s*(.+)$", text.strip())
+            if import_match:
+                result = self.external_importer.result(import_match.group(1))
+                if result.ok: self.learning.queue_external(result.data)
+                return result
+            candidate = self.learning.detect(text)
+            if candidate:
+                return self.learning.propose(candidate)
             result, route_name = self.agent_router.handle(text)
             if result.entity_type and result.entity_id:
                 label = result.data.get("title", result.data.get("name", "")) if isinstance(result.data, dict) else ""

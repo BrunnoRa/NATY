@@ -4,15 +4,15 @@ Branch: `feat/naty-v3-hybrid`
 
 Commit: `HEAD` — `feat: add neural NATY voice` (precedido por `feat: complete real voice pipeline`)
 
-Último bloco concluído: Blocos 1 e 2 — voz real via IPC/WPF, Whisper Base multilíngue e Piper Faber pt-BR.
+Último bloco concluído: Blocos 3 e 4 — delegação externa com ContextPack seguro, importação estruturada e aprendizado assistido com confirmação.
 
 Testes: 117 testes Python aprovados (1 skip DPAPI esperado), compileall, build WPF e dotnet test verdes; git diff check verde.
 
-Funcional: microfone resolvido por nome/host API/sample rate; Realtek WDM-KS abre; Whisper e Piper instalados com manifesto/checksums; Piper sintetiza e reproduz; HUD acompanha estados e follow-up.
+Funcional: voz/Whisper/Piper dos blocos anteriores; delegação abre ChatGPT e copia só contexto relevante sem segredos; retorno externo e novas preferências/decisões só são persistidos após confirmação.
 
 Não validado: leitura humana das 10 frases, precisão/WER com fala natural e clique/hotkey no aplicativo WPF reiniciado.
 
-Próximo: Bloco 3 — delegação externa e importação controlada de resultado; depois LearningManager assistido.
+Próximo: Bloco 5 — concluir UI/fluxos Google mantendo o estado `not_configured` sem bloquear a NATY.
 
 ---
 

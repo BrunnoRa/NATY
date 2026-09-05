@@ -20,6 +20,7 @@ class WindowsActionsTool:
     def __init__(self, opener: Callable[[str], None] | None = None, media_sender: Callable[[int], None] | None = None):
         self.opener = opener or self._open
         self.media_sender = media_sender or self._send_media_key
+        self.delegation = None
 
     @staticmethod
     def _open(target: str) -> None:
@@ -63,6 +64,8 @@ class WindowsActionsTool:
 
     def delegate(self, text: str) -> ToolResult:
         try:
+            if self.delegation:
+                return self.delegation.prepare(text)
             self._copy_text(text)
             self.opener(self.APPS["chatgpt"])
             return ToolResult(True, "Abri o ChatGPT e copiei um pacote de contexto para você colar e aprofundar a análise.",

@@ -60,6 +60,7 @@ google_credentials_path = ""
 perplexity_enabled = false
 performance_monitor_enabled = true
 privacy_mode = true
+learning_mode = "assisted"
 scheduler_interval_seconds = 30
 daily_summary_time = "08:00"
 data_dir = "data"
