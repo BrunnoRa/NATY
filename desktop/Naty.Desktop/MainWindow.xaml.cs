@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     private bool _closeToTray = true;
     private static readonly HashSet<string> PrimaryProviders = new(StringComparer.OrdinalIgnoreCase)
         { "Voice", "Web", "Obsidian", "Sync" };
+    internal string HotkeyStatus { get; private set; } = "unknown";
 
     public MainWindow()
     {
@@ -295,7 +296,7 @@ public partial class MainWindow : Window
     {
         var handle = new WindowInteropHelper(this).Handle;
         HwndSource.FromHwnd(handle)?.AddHook(WndProc);
-        RegisterHotKey(handle, HotkeyId, 0x0001 | 0x0002, 0x20);
+        HotkeyStatus = RegisterHotKey(handle, HotkeyId, 0x0001 | 0x0002, 0x20) ? "registered" : "conflict";
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

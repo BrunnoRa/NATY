@@ -16,6 +16,7 @@ public partial class SettingsWindow : Window
     private string _memoryFolder = "";
     private string _evolutionPath = "";
     private string _conflictsFolder = "";
+    private string _technicalDetails = "Execute o diagnóstico primeiro.";
 
     public SettingsWindow(CoreClient core)
     {
@@ -92,8 +93,34 @@ public partial class SettingsWindow : Window
         try { await _core.RequestAsync("voice_start", timeoutMilliseconds: 3000); StatusText.Text = "Teste iniciado; fale com a NATY."; }
         catch (Exception exc) { StatusText.Text = $"Teste indisponível: {exc.Message}"; }
     }
+    private void PrecisionTest_Click(object sender, RoutedEventArgs e)
+    {
+        new VoiceAccuracyWindow(_core) { Owner = this }.ShowDialog();
+        StatusText.Text = "Teste de precisão encerrado";
+    }
     private async void SyncNow_Click(object sender, RoutedEventArgs e) { try { var result = await _core.RequestAsync("sync_now"); SyncStatus.Text = RuntimeLabel(String(result.Payload, "status")); } catch (Exception exc) { StatusText.Text = exc.Message; } }
-    private async void Reload_Click(object sender, RoutedEventArgs e) => await LoadSettingsAsync();
+    private async void RunDiagnostics_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            StatusText.Text = "Executando diagnóstico…";
+            var hotkey = (Owner as MainWindow)?.HotkeyStatus ?? "unknown";
+            var report = (await _core.RequestAsync("diagnostics", new { hotkey })).Payload;
+            var display = new List<string>(); var technical = new List<string>();
+            foreach (var item in report.GetProperty("items").EnumerateArray())
+            {
+                var name = String(item, "name"); var state = String(item, "state"); var message = String(item, "message");
+                display.Add($"{name}: {StateLabel(state)} — {message}");
+                technical.Add($"{name} | {state} | {message} | {String(item, "technical")}");
+            }
+            AboutStatus.Text = string.Join("\n", display);
+            _technicalDetails = $"NATY diagnóstico {String(report, "generated_at")}\n" + string.Join("\n", technical);
+            StatusText.Text = "Diagnóstico concluído";
+        }
+        catch (Exception exc) { StatusText.Text = $"Diagnóstico indisponível: {exc.Message}"; }
+    }
+    private static string StateLabel(string state) => state switch { "ok" => "OK", "not_configured" => "Não configurado", "warning" => "Aviso", "error" => "Erro", _ => state };
+    private void CopyDiagnostics_Click(object sender, RoutedEventArgs e) { System.Windows.Clipboard.SetText(_technicalDetails); StatusText.Text = "Detalhes técnicos copiados"; }
     private void OpenConflicts_Click(object sender, RoutedEventArgs e) => OpenPath(_conflictsFolder);
     private void OpenMemory_Click(object sender, RoutedEventArgs e) => OpenPath(_memoryFolder);
     private void OpenEvolution_Click(object sender, RoutedEventArgs e) => OpenPath(_evolutionPath);

@@ -51,6 +51,7 @@ from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
 from sync.models import DeviceIdentity
+from diagnostics.service import DiagnosticService
 
 
 def setup_logging(settings: Settings) -> logging.Logger:
@@ -141,11 +142,15 @@ class NatyAssistant:
             except (OSError, ValueError):
                 self.logger.exception("Falha ao iniciar sincronização")
         self.state = AppState.IDLE
+        self.diagnostics = DiagnosticService(self)
 
     def handle_result(self, text: str) -> ToolResult:
         self.state = AppState.PROCESSING; self.events.publish("state", self.state)
         try:
             plain = text.strip().casefold()
+            if re.fullmatch(r"(?:naty[,.]?\s*)?como (?:você|voce) está[?.!]*", plain):
+                report = self.diagnostics.run()
+                return ToolResult(True, report["summary"], report, type="diagnostics")
             if self.learning.pending and plain in {"sim", "confirmo", "pode", "pode fazer"}:
                 return self.learning.confirm()
             if self.learning.pending and plain in {"não", "nao", "cancelar", "cancela"}:

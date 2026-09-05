@@ -111,7 +111,8 @@ class IPCProtocolTests(unittest.TestCase):
         self.assertEqual(response["type"], "shutdown_ack")
 
     def test_voice_messages_are_allowed_by_protocol(self):
-        for type_ in ("voice_start", "voice_status", "voice_stop"):
+        for type_ in ("voice_start", "voice_status", "voice_stop",
+                      "voice_precision_start", "voice_precision_status", "voice_precision_stop"):
             message = request(type_, request_id=type_)
             self.assertEqual(decode_message(encode_message(message))["type"], type_)
 
@@ -129,7 +130,7 @@ class IPCProtocolTests(unittest.TestCase):
             handler.handle(request("settings_save", {"google_credentials_path": "secret.json"}))
 
     def test_sync_messages_are_allowed_by_protocol(self):
-        for type_ in ("settings_get", "settings_save", "sync_now"):
+        for type_ in ("settings_get", "settings_save", "sync_now", "diagnostics"):
             self.assertEqual(type_, decode_message(encode_message(request(type_)))["type"])
 
     def test_saved_settings_survive_reload(self):

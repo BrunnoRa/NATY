@@ -10,7 +10,8 @@ MAX_MESSAGE_BYTES = 64 * 1024
 ALLOWED_TYPES = {
     "ping", "status", "dashboard", "graph", "user_input",
     "voice_start", "voice_status", "voice_stop",
-    "settings_get", "settings_save", "sync_now", "shutdown",
+    "voice_precision_start", "voice_precision_status", "voice_precision_stop",
+    "settings_get", "settings_save", "sync_now", "diagnostics", "shutdown",
 }
 
 

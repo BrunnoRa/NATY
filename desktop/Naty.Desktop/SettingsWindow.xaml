@@ -43,7 +43,7 @@
             <StackPanel Grid.Column="1"><TextBlock Style="{StaticResource FieldLabel}" Text="Volume (0–100)"/><TextBox x:Name="VoiceVolume" Margin="0,0,8,0"/></StackPanel>
             <StackPanel Grid.Column="2"><TextBlock Style="{StaticResource FieldLabel}" Text="Follow-up (s)"/><TextBox x:Name="Followup"/></StackPanel>
           </Grid>
-          <WrapPanel Margin="0,20,0,0"><Button Content="Testar microfone" Tag="microphone" Click="VoiceTest_Click" Margin="0,0,8,0"/><Button Content="Testar Whisper" Tag="whisper" Click="VoiceTest_Click" Margin="0,0,8,0"/><Button Content="Testar voz NATY" Tag="tts" Click="VoiceTest_Click"/></WrapPanel>
+          <WrapPanel Margin="0,20,0,0"><Button Content="Testar microfone" Tag="microphone" Click="VoiceTest_Click" Margin="0,0,8,8"/><Button Content="Testar Whisper" Tag="whisper" Click="VoiceTest_Click" Margin="0,0,8,8"/><Button Content="Testar voz NATY" Tag="tts" Click="VoiceTest_Click" Margin="0,0,8,8"/><Button Content="Teste de precisão (10 frases)" Click="PrecisionTest_Click" Margin="0,0,0,8"/></WrapPanel>
         </StackPanel></ScrollViewer>
       </TabItem>
       <TabItem Header="Integrações">
@@ -77,9 +77,10 @@
         </StackPanel></ScrollViewer>
       </TabItem>
       <TabItem Header="Sobre">
-        <StackPanel Margin="22"><TextBlock Text="NATY" FontSize="28" FontWeight="SemiBold"/><TextBlock Text="Versão 3 · Desktop WPF + Core Python" Foreground="{StaticResource TextSecondary}" Margin="0,5,0,20"/>
-          <TextBlock x:Name="AboutStatus" TextWrapping="Wrap" LineHeight="25"/><Button Content="Atualizar estado" Width="150" HorizontalAlignment="Left" Margin="0,20,0,0" Click="Reload_Click"/>
-        </StackPanel>
+        <ScrollViewer><StackPanel Margin="22"><TextBlock Text="NATY" FontSize="28" FontWeight="SemiBold"/><TextBlock Text="Versão 3 · Desktop WPF + Core Python" Foreground="{StaticResource TextSecondary}" Margin="0,5,0,20"/>
+          <TextBlock x:Name="AboutStatus" TextWrapping="Wrap" LineHeight="25"/>
+          <WrapPanel Margin="0,20,0,0"><Button Content="Executar diagnóstico" Click="RunDiagnostics_Click" Margin="0,0,8,0"/><Button Content="Copiar detalhes técnicos" Click="CopyDiagnostics_Click"/></WrapPanel>
+        </StackPanel></ScrollViewer>
       </TabItem>
     </TabControl>
     <DockPanel Grid.Row="2" Margin="0,14,0,0"><Button Content="Cancelar" Click="Cancel_Click" HorizontalAlignment="Right" Margin="8,0,0,0"/><Button Content="Salvar" Click="Save_Click" HorizontalAlignment="Right" Background="#123B5A"/></DockPanel>

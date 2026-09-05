@@ -25,8 +25,9 @@ def exchange(type_: str, payload: dict | None = None, pipe: str | None = None) -
                 stream.write(json.dumps(message, ensure_ascii=False).encode("utf-8") + b"\n")
                 raw = stream.readline()
             break
-        except FileNotFoundError:
-            if time.monotonic() >= deadline: raise
+        except OSError:
+            if time.monotonic() >= deadline:
+                raise
             time.sleep(0.02)
     response = json.loads(raw.decode("utf-8"))
     assert response["protocol"] == 1 and response["request_id"] == request_id, response
@@ -62,10 +63,30 @@ def main() -> int:
             greeting = exchange("user_input", {"text": "Oi Naty"}, pipe)
             assert greeting["payload"]["success"] and greeting["payload"]["type"] == "chat"
             assert greeting["payload"]["ui"]["mode"] == "brain"
+            diagnostics = exchange("diagnostics", {"hotkey": "registered"}, pipe)
+            assert diagnostics["type"] == "diagnostics"
+            component_names = {item["name"] for item in diagnostics["payload"]["items"]}
+            assert {
+                "Desktop",
+                "Core",
+                "Pipe",
+                "SQLite",
+                "Whisper",
+                "Piper",
+                "Google",
+                "Sync",
+                "Hotkey",
+            } <= component_names
+            precision = exchange("voice_precision_status", pipe=pipe)
+            assert precision["type"] == "voice_precision_status"
+            assert {"state", "active", "transcription", "wer", "latency_ms"} <= precision["payload"].keys()
             stopped = exchange("shutdown", pipe=pipe)
             assert stopped["type"] == "shutdown_ack"
             process.wait(timeout=8)
-            print("OK: Named Pipe v1, ping, dashboard, resposta estruturada e shutdown limpo.")
+            print(
+                "OK: Named Pipe v1, ping, dashboard, resposta estruturada, "
+                "diagnóstico, teste de precisão e shutdown limpo."
+            )
             return 0
         finally:
             if process.poll() is None:

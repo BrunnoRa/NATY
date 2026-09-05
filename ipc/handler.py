@@ -51,7 +51,8 @@ class CoreRequestHandler:
         return [
             {"name": "Voice", "state": "online" if settings.voice_enabled and self._voice_available() else "attention" if settings.voice_enabled else "off"},
             {"name": "Web", "state": "online" if settings.research_enabled else "off"},
-            {"name": "Gmail", "state": self.assistant.google.auth.status()["state"] if hasattr(self.assistant, "google") else "off"},
+            {"name": "Gmail", "state": "online" if hasattr(self.assistant, "google") and self.assistant.google.auth.status()["state"] == "connected" else
+                                      self.assistant.google.auth.status()["state"] if hasattr(self.assistant, "google") else "off"},
             {"name": "Obsidian", "state": "online" if self.assistant.obsidian.available else "off"},
             {"name": "Spotify", "state": "off"},
             {"name": "Sync", "state": sync_state, "label": sync_label},
@@ -189,6 +190,13 @@ class CoreRequestHandler:
             return response(message, "voice_status", self._voice_controller().snapshot())
         if type_ == "voice_stop":
             return response(message, "voice_status", self._voice_controller().stop())
+        if type_ == "voice_precision_start":
+            expected = str(message["payload"].get("expected", ""))
+            return response(message, "voice_precision_status", self._voice_controller().start_precision(expected))
+        if type_ == "voice_precision_status":
+            return response(message, "voice_precision_status", self._voice_controller().precision_snapshot())
+        if type_ == "voice_precision_stop":
+            return response(message, "voice_precision_status", self._voice_controller().stop_precision())
         if type_ == "settings_get":
             return response(message, "settings", self._settings_payload())
         if type_ == "settings_save":
@@ -201,6 +209,9 @@ class CoreRequestHandler:
             except (OSError, TimeoutError):
                 self.assistant.sync.status = "offline"
                 return response(message, "sync_status", self.assistant.sync.summary())
+        if type_ == "diagnostics":
+            hotkey = str(message["payload"].get("hotkey", "unknown"))
+            return response(message, "diagnostics", self.assistant.diagnostics.run(hotkey, "ok", "ok"))
         if type_ == "shutdown":
             if self._voice is not None:
                 self._voice.close()

@@ -18,6 +18,7 @@ class FakeVoiceManager:
 
     def __init__(self):
         self.heard = self.failed = self.state = None
+        self.precision_heard = self.precision_failed = None
         self.stopped = False
 
     def start_session(self, heard, failed, level, state):
@@ -30,6 +31,11 @@ class FakeVoiceManager:
         self.closed = closed
 
     def stop_session(self): self.stopped = True
+
+    def listen_async(self, heard, failed, timeout, on_level, on_state):
+        self.precision_heard, self.precision_failed = heard, failed
+        on_level(0.4)
+        on_state("transcribing")
 
 
 class VoiceControllerTests(unittest.TestCase):
@@ -55,6 +61,21 @@ class VoiceControllerTests(unittest.TestCase):
         controller = VoiceController(Settings(voice_enabled=True), lambda _: {"text": "ok"}, manager)
         controller.start(); controller.start()
         self.assertTrue(manager.stopped)
+
+    def test_precision_mode_transcribes_without_executing_command(self):
+        manager = FakeVoiceManager()
+        commands = []
+        controller = VoiceController(Settings(voice_enabled=True), commands.append, manager)
+        started = controller.start_precision("Naty abre o Spotify")
+        self.assertTrue(started["active"])
+        self.assertEqual("TRANSCRIBING", started["state"])
+        manager.precision_heard("Naty abre Spotify")
+        result = controller.precision_snapshot()
+        self.assertEqual("COMPLETE", result["state"])
+        self.assertEqual("Naty abre Spotify", result["transcription"])
+        self.assertAlmostEqual(0.25, result["wer"])
+        self.assertIsNotNone(result["latency_ms"])
+        self.assertEqual([], commands)
 
 
 if __name__ == "__main__": unittest.main()

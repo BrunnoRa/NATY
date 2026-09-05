@@ -2,17 +2,17 @@
 
 Branch: `feat/naty-v3-hybrid`
 
-Commit: `HEAD` — `feat: package hybrid NATY Windows app`
+Commit: `HEAD` — `feat: add diagnostics and acceptance flow`
 
-Último bloco concluído: Bloco 8 — empacotamento e instalador híbridos para Windows.
+Último bloco concluído: Blocos 9 e 10 — diagnóstico interno, aceite guiado e benchmark final.
 
-Testes: suíte completa pré-package com 130 testes (129 aprovados + 1 skip DPAPI esperado); 6 testes de packaging; build WPF 0/0; smokes do Core e do Naty.exe empacotados com shutdown limpo; git diff check verde.
+Testes: suíte completa com 134 testes (133 aprovados + 1 skip DPAPI esperado); `compileall`; build WPF 0 avisos/0 erros; `dotnet test`; smokes do Core e do `Naty.exe` empacotados, incluindo diagnóstico e modo de precisão; `git diff --check` verde; nenhum processo órfão.
 
-Funcional: `Naty.exe` WPF self-contained inicia `Core/Naty.Core.exe` silenciosamente; single-instance sinaliza a janela existente; shutdown encerra a árvore; build gera ZIP e `NatySetup.exe`; atalhos/startup opcionais; desinstalação preserva dados pessoais e modelos.
+Funcional: diagnóstico real de Desktop/Core/Pipe/SQLite/Obsidian/Whisper/Piper/Google/Sync/Hotkey, comando “Naty, como você está?”, cópia de detalhes técnicos, roteiro de aceite e teste guiado isolado de 10 frases com transcrição, WER e latência; ZIP e `NatySetup.exe` finais gerados; benchmark da árvore híbrida registrado.
 
-Não validado: instalação/desinstalação humana via wizard, segunda execução trazendo janela após instalação, testes dos botões Settings/voz, OneDrive entre dois PCs, hotkey após reinicialização e OAuth Google.
+Não validado: instalação/desinstalação humana via wizard; 10 frases faladas no microfone; hotkey após reinicialização; OneDrive entre dois PCs físicos; OAuth Google; ações manuais de tray, Spotify e handoff ChatGPT.
 
-Próximo: Blocos 9 e 10 — diagnóstico interno, aceite guiado e benchmark final da árvore de processos.
+Próximo: instalar `installer/NatySetup.exe`, executar `MANUAL_ACCEPTANCE.md` e publicar os commits locais no remoto.
 
 ---
 

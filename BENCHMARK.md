@@ -1,5 +1,24 @@
 # Benchmark da Naty
 
+## Fechamento V3 híbrido — 05/09/2026
+
+Medição da árvore real `Naty.exe` + `Naty.Core.exe`, publicada self-contained, usando dados temporários e `scripts/benchmark_hybrid.py`.
+
+| Cenário | RAM da árvore | CPU amostrada | Latência |
+|---|---:|---:|---:|
+| Idle | 192,93 MiB | 0,0% | — |
+| Brain / comando local | 192,97 MiB | 0,0% | 15,18 ms |
+| Context / resumo do dia | 193,78 MiB | 40,6% durante a operação | 46,83 ms |
+| Pesquisa real | 201,93 MiB | 0,0% após resposta | 2.529,62 ms |
+| SyncManager / evento local | — | — | 55,25 ms |
+
+- Processos em idle: 2 (`Naty.exe` e `Naty.Core.exe`).
+- SyncManager terminou como `updated`.
+- Whisper carregado, transcrição e Piper não foram medidos neste benchmark automático porque exigem fala/reprodução controlada; permanecem no roteiro manual.
+- Os valores são observações desta máquina, não limites garantidos. A meta prática é responsividade e árvore completa corretamente contabilizada.
+
+---
+
 Medição local gerada em `2026-09-04T14:21:53-03:00` por `scripts/benchmark_resources.py`. Os valores descrevem esta execução e não são uma promessa para outras máquinas.
 
 ## Ambiente
