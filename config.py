@@ -39,6 +39,10 @@ class Settings:
     wake_word_enabled: bool = False
     tts_enabled: bool = True
     tts_provider: str = "sapi"
+    piper_executable_path: str = ""
+    piper_model_path: str = ""
+    piper_config_path: str = ""
+    piper_pause_ms: int = 120
     stt_provider: str = "whisper_cpp"
     vosk_model_path: str = ""
     whisper_executable_path: str = ""

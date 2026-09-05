@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 import inspect
+import re
 import threading
 import time
 
@@ -52,7 +53,8 @@ class VoiceSessionManager:
             getattr(settings, "microphone_sample_rate", 0),
         )
         device_id = self.microphone["id"] if self.microphone else settings.microphone_device
-        neural_tts = PiperTTS(getattr(settings, "piper_executable_path", "piper"), getattr(settings, "piper_model_path", ""))
+        neural_tts = PiperTTS(getattr(settings, "piper_executable_path", ""), getattr(settings, "piper_model_path", ""),
+                              getattr(settings, "piper_config_path", ""))
         self.tts = tts or (neural_tts if settings.tts_provider == "piper" and neural_tts.available()
                            else SapiTTS(settings.voice, settings.voice_rate, settings.voice_volume))
         whisper = WhisperCppSTT(settings.whisper_executable_path, settings.whisper_model_path,
@@ -67,6 +69,24 @@ class VoiceSessionManager:
         self.session = VoiceSession(followup)
         self.active = False
         self._lock = threading.Lock()
+        self._speech_lock = threading.Lock()
+        self._speech_generation = 0
+
+    @staticmethod
+    def sentences(text: str) -> list[str]:
+        return [part.strip() for part in re.split(r"(?<=[.!?…])\s+", text.strip()) if part.strip()]
+
+    def _speak_response(self, text: str) -> None:
+        with self._speech_lock:
+            self._speech_generation += 1
+            generation = self._speech_generation
+        for sentence in self.sentences(text):
+            with self._speech_lock:
+                if generation != self._speech_generation: return
+            self.tts.speak(sentence)
+            pause_ms = max(0, min(1000, int(getattr(self.settings, "piper_pause_ms", 120))))
+            if pause_ms and self.settings.tts_provider == "piper":
+                time.sleep(pause_ms / 1000)
 
     def _listen_once(self, timeout: float, on_level=None, on_state=None) -> str:
         parameters = inspect.signature(self.stt.listen_once).parameters
@@ -79,7 +99,7 @@ class VoiceSessionManager:
             if on_done: on_done()
             return
         def work():
-            try: self.tts.speak(text)
+            try: self._speak_response(text)
             finally:
                 if on_done: on_done()
         threading.Thread(target=work, name="NatyTTS", daemon=True).start()
@@ -152,7 +172,7 @@ class VoiceSessionManager:
             try:
                 if self.settings.tts_enabled:
                     if on_state: on_state("speaking")
-                    self.tts.speak(text)
+                    self._speak_response(text)
                 if not self.session.active:
                     on_closed(); return
                 if on_state: on_state("listening")
@@ -183,6 +203,7 @@ class VoiceSessionManager:
 
     def stop_session(self) -> None:
         self.session.close()
+        with self._speech_lock: self._speech_generation += 1
         try: self.tts.stop()
         except AttributeError: pass
         self._unload_if_configured()

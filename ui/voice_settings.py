@@ -10,6 +10,8 @@ from tkinter import ttk
 
 from voice.devices import default_input_device_id, friendly_audio_error, list_microphones, resolve_microphone
 from voice.sapi_tts import SapiTTS
+from voice.piper_tts import PiperTTS
+from voice.piper_setup import diagnostics as piper_diagnostics
 from voice.vosk_stt import VoskSTT
 from voice.whisper_setup import diagnostics as whisper_diagnostics
 
@@ -94,7 +96,10 @@ class VoiceSettingsWindow:
         self.voice = tk.StringVar(value=selected_voice)
         ttk.Combobox(frame, textvariable=self.voice, values=voice_labels, state="readonly").grid(
             row=9, column=1, sticky="ew", padx=8, pady=(12, 0))
-        ttk.Button(frame, text="Ouvir exemplo", command=self.test_tts).grid(row=9, column=2, pady=(12, 0))
+        preview = ttk.Frame(frame)
+        preview.grid(row=9, column=2, pady=(12, 0))
+        ttk.Button(preview, text="TESTAR NATY", command=lambda: self.test_tts(True)).pack(fill="x")
+        ttk.Button(preview, text="TESTAR SAPI", command=lambda: self.test_tts(False)).pack(fill="x", pady=(4, 0))
         if not any(v.get("gender", "").casefold() == "female" and v.get("culture", "").casefold().startswith("pt-br") for v in self.voices):
             ttk.Label(frame, text=SapiTTS.windows_voice_setup_instructions(), wraplength=700).grid(
                 row=10, column=0, columnspan=3, sticky="w", pady=(6, 0))
@@ -208,11 +213,26 @@ class VoiceSettingsWindow:
             self.transcription.set("Áudio sem palavras reconhecidas")
             self.status.set("O microfone recebeu sinal, mas o Vosk não reconheceu a frase. Fale mais perto e reduza ruído ambiente.")
 
-    def test_tts(self) -> None:
+    def test_tts(self, neural: bool = True) -> None:
         self.status.set("Reproduzindo exemplo…")
         def work() -> None:
-            SapiTTS(self.selected_voice(), int(self.rate.get()), int(self.volume.get())).speak("Olá. Esta é a voz da Naty.")
-            self.win.after(0, self.status.set, "Exemplo concluído.")
+            try:
+                if neural:
+                    status = piper_diagnostics(self.settings.piper_executable_path, self.settings.piper_model_path,
+                                               self.settings.piper_config_path)
+                    if not status["ready"]:
+                        self.win.after(0, self.status.set, "Piper neural não instalado. Execute scripts/setup_piper.py.")
+                        return
+                    provider = PiperTTS(self.settings.piper_executable_path, self.settings.piper_model_path,
+                                        self.settings.piper_config_path)
+                    phrase = "Olá. Eu sou a Naty. Você tem três tarefas importantes hoje."
+                else:
+                    provider = SapiTTS(self.selected_voice(), int(self.rate.get()), int(self.volume.get()))
+                    phrase = "Olá. Esta é a voz SAPI de reserva da Naty."
+                provider.speak(phrase)
+                self.win.after(0, self.status.set, "Exemplo concluído.")
+            except Exception as exc:
+                self.win.after(0, self.status.set, f"Falha no teste de voz: {exc}")
         threading.Thread(target=work, name="NatyVoicePreview", daemon=True).start()
 
     def configure_whisper(self) -> None:

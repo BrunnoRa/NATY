@@ -1,3 +1,21 @@
+# CURRENT HANDOFF
+
+Branch: `feat/naty-v3-hybrid`
+
+Commit: `HEAD` — `feat: add neural NATY voice` (precedido por `feat: complete real voice pipeline`)
+
+Último bloco concluído: Blocos 1 e 2 — voz real via IPC/WPF, Whisper Base multilíngue e Piper Faber pt-BR.
+
+Testes: 117 testes Python aprovados (1 skip DPAPI esperado), compileall, build WPF e dotnet test verdes; git diff check verde.
+
+Funcional: microfone resolvido por nome/host API/sample rate; Realtek WDM-KS abre; Whisper e Piper instalados com manifesto/checksums; Piper sintetiza e reproduz; HUD acompanha estados e follow-up.
+
+Não validado: leitura humana das 10 frases, precisão/WER com fala natural e clique/hotkey no aplicativo WPF reiniciado.
+
+Próximo: Bloco 3 — delegação externa e importação controlada de resultado; depois LearningManager assistido.
+
+---
+
 # STATUS ATUAL DA NATY
 
 > Auditoria de continuidade realizada em 04/09/2026, no workspace `C:\Users\yster\Desktop\NATY`.

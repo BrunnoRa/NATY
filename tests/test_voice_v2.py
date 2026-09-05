@@ -12,6 +12,8 @@ from tests.base import TempDatabaseTest
 from voice.devices import audio_level, friendly_audio_error, list_microphones, resolve_microphone, validate_microphone
 from voice.audio_processing import AutomaticGain
 from voice.manager import VoiceSessionManager
+from voice.piper_tts import PiperTTS
+from voice.piper_setup import diagnostics as piper_diagnostics, safe_extract_runtime as safe_extract_piper
 from voice.sapi_tts import SapiTTS
 from voice.vosk_stt import VoskSTT
 from voice.whisper_setup import diagnostics as whisper_diagnostics, is_windows_x64, safe_extract_runtime
@@ -87,6 +89,49 @@ class VoiceV2Tests(TempDatabaseTest):
     def test_windows_x64_validation(self):
         self.assertTrue(is_windows_x64("AMD64", "Windows"))
         self.assertFalse(is_windows_x64("ARM64", "Windows"))
+
+    def test_piper_diagnostics_requires_runtime_model_and_config(self):
+        executable = self.root / "piper.exe"; executable.write_bytes(b"exe")
+        model = self.root / "voice.onnx"; model.write_bytes(b"model")
+        config = self.root / "voice.onnx.json"; config.write_text("{}")
+        with patch("voice.piper_setup.is_windows_x64", return_value=True):
+            self.assertTrue(piper_diagnostics(executable, model, config)["ready"])
+            self.assertFalse(piper_diagnostics(executable, model, self.root / "missing.json")["ready"])
+
+    def test_piper_runtime_extract_rejects_path_traversal(self):
+        archive = self.root / "piper.zip"
+        with zipfile.ZipFile(archive, "w") as bundle:
+            bundle.writestr("../piper.exe", b"bad")
+        with self.assertRaisesRegex(ValueError, "inseguro"):
+            safe_extract_piper(archive, self.root / "piper")
+
+    def test_piper_synthesizes_with_explicit_config(self):
+        executable = self.root / "piper.exe"; executable.write_bytes(b"exe")
+        model = self.root / "voice.onnx"; model.write_bytes(b"model")
+        config = self.root / "voice.onnx.json"; config.write_text("{}")
+        output = self.root / "voice.wav"
+
+        class Process:
+            returncode = 0
+            def __init__(self, command, **_):
+                target = Path(command[command.index("--output_file") + 1])
+                with wave.open(str(target), "wb") as audio:
+                    audio.setnchannels(1); audio.setsampwidth(2); audio.setframerate(22050); audio.writeframes(b"\0\0" * 100)
+            def communicate(self, text, timeout): return "", ""
+
+        with patch("voice.piper_tts.subprocess.Popen", side_effect=lambda command, **kwargs: Process(command, **kwargs)):
+            result = PiperTTS(str(executable), str(model), str(config)).synthesize("Olá", output)
+        self.assertEqual(result, output)
+        self.assertGreater(output.stat().st_size, 44)
+
+    def test_response_is_queued_by_complete_sentence(self):
+        class TTS:
+            def __init__(self): self.spoken = []
+            def speak(self, text): self.spoken.append(text)
+        tts = TTS()
+        manager = VoiceSessionManager(self.settings(tts_enabled=True, tts_provider="sapi"), stt=object(), tts=tts)
+        manager._speak_response("Primeira frase. Segunda! Terceira?")
+        self.assertEqual(tts.spoken, ["Primeira frase.", "Segunda!", "Terceira?"])
 
     def test_automatic_gain_amplifies_low_voice_without_amplifying_silence(self):
         processor = AutomaticGain(max_gain=12, enabled=True)
