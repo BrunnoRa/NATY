@@ -7,12 +7,13 @@ from nlu import intents
 
 class ToolRouter:
     def __init__(self, *, tasks, lists, reminders, projects, notes, calendar, planner, research, context: SessionContext,
-                 google=None, automations=None, windows=None, planning=None, knowledge=None):
+                 google=None, automations=None, windows=None, planning=None, knowledge=None, system_status=None):
         self.tasks, self.lists, self.reminders = tasks, lists, reminders
         self.projects, self.notes, self.calendar, self.planner, self.research = projects, notes, calendar, planner, research
         self.context = context
         self.google = google
         self.automations, self.windows, self.planning, self.knowledge = automations, windows, planning, knowledge
+        self.system_status = system_status
         self.pending_confirmation: tuple[str, dict] | None = None
 
     def execute(self, intent: Intent) -> ToolResult:
@@ -88,6 +89,8 @@ class ToolRouter:
             from datetime import datetime
             now = datetime.now().astimezone()
             return ToolResult(True, f"Agora são {now:%H:%M}.", {"time": now.isoformat(timespec="seconds")}, type="current_time")
+        if name in {intents.SYSTEM_STATUS, intents.SYSTEM_DIAGNOSIS} and self.system_status:
+            return self.system_status.status(e.get("focus", "general"), diagnose=name == intents.SYSTEM_DIAGNOSIS)
         if name == intents.OBSIDIAN_QUERY and self.knowledge: return self.knowledge.query(e.get("query", ""))
         if name == intents.CREATE_AUTOMATION and self.automations: return self.automations.create(**e)
         if name == intents.OPEN_APP and self.windows: return self.windows.open_app(e["app"])

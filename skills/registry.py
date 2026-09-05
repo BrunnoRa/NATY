@@ -38,6 +38,7 @@ def build_registry(tool_router) -> SkillRegistry:
         "projects": ((i.CREATE_PROJECT,i.PROJECT_OVERDUE,i.CREATE_NOTE), ("sqlite:projects","obsidian:write-managed")),
         "research": ((i.RESEARCH,i.COMPARE,i.SAVE_RESEARCH,i.OPEN_RESEARCH_BROWSER), ("network:search","obsidian:write-managed")),
         "help": ((i.HELP,), ("none",)),
+        "system_status": ((i.SYSTEM_STATUS,i.SYSTEM_DIAGNOSIS), ("system:read",)),
         "google_workspace": ((i.CONNECT_GOOGLE,i.DISCONNECT_GOOGLE,i.GMAIL_SEARCH,i.GMAIL_DRAFT,i.GMAIL_SEND,i.GOOGLE_CALENDAR_UPCOMING,i.GOOGLE_CALENDAR_FREE), ("oauth:google","gmail:scoped","calendar:scoped")),
     }
     registry = SkillRegistry()

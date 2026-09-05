@@ -33,6 +33,7 @@ class IntentRouter:
             RequestType.OBSIDIAN_QUERY: {intents.OBSIDIAN_QUERY},
             RequestType.AUTOMATION: {intents.CREATE_AUTOMATION},
             RequestType.DELEGATE: {intents.DELEGATE},
+            RequestType.SYSTEM: {intents.SYSTEM_STATUS, intents.SYSTEM_DIAGNOSIS},
         }
         for kind, names in groups.items():
             if name in names:

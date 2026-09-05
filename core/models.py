@@ -33,6 +33,7 @@ class RequestType(str, Enum):
     MEMORY = "MEMORY"
     AUTOMATION = "AUTOMATION"
     DELEGATE = "DELEGATE"
+    SYSTEM = "SYSTEM"
     CLARIFICATION = "CLARIFICATION"
 
 

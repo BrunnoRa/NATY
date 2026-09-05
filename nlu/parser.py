@@ -29,6 +29,16 @@ class RuleParser:
             return Intent(intents.CHAT, {"kind": "greeting"}, raw_text=raw)
         if re.search(r"\b(que horas sao|qual (?:e )?a hora|hora agora)\b", plain):
             return Intent(intents.TIME_QUERY, raw_text=raw)
+        if re.search(r"\b(?:meu (?:pc|computador)|computador|pc)\b.*\b(?:lento|travando|diagnostico)\b|\bpor que.*\b(?:pc|computador).*\blento\b", plain):
+            return Intent(intents.SYSTEM_DIAGNOSIS, {"focus": "diagnosis"}, raw_text=raw)
+        if re.search(r"\bquanto (?:a )?naty (?:esta )?(?:consumindo|usando)\b|\bconsumo da naty\b", plain):
+            return Intent(intents.SYSTEM_STATUS, {"focus": "naty"}, raw_text=raw)
+        if re.search(r"\b(?:o que|qual processo).*\b(?:mais ram|mais memoria)\b|\busando mais (?:ram|memoria)\b", plain):
+            return Intent(intents.SYSTEM_STATUS, {"focus": "top_memory"}, raw_text=raw)
+        if re.search(r"\bquanto (?:de )?(?:ram|memoria).*(?:usando|uso|disponivel)\b|\buso de (?:ram|memoria)\b", plain):
+            return Intent(intents.SYSTEM_STATUS, {"focus": "memory"}, raw_text=raw)
+        if re.search(r"\bcomo (?:esta|vai).*(?:meu )?(?:pc|computador)\b|\bestado (?:do|deste) (?:pc|computador)\b", plain):
+            return Intent(intents.SYSTEM_STATUS, {"focus": "general"}, raw_text=raw)
         if plain in {"sim", "confirmo", "pode", "pode fazer"}: return Intent(intents.CONFIRM, raw_text=raw)
         if plain in {"nao", "cancelar", "cancela"}: return Intent(intents.CANCEL, raw_text=raw)
         if re.search(r"\b(ajuda|comandos|o que voce faz)\b", plain): return Intent(intents.HELP, raw_text=raw)

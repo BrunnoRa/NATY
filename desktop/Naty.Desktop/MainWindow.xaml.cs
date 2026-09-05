@@ -245,6 +245,14 @@ public partial class MainWindow : Window
                 var next = data.TryGetProperty("next_run_at", out var nextValue) ? nextValue.GetString() ?? "" : "";
                 _viewModel.ContextItems.Add(new ContextItem(name, next));
             }
+            else if (panel == "system")
+            {
+                AddMetric(data, "CPU", "cpu_percent", "%");
+                if (data.TryGetProperty("memory", out var memory)) AddMetric(memory, "RAM", "percent", "%");
+                if (data.TryGetProperty("disk", out var disk)) AddMetric(disk, "Disco", "percent", "% ocupado");
+                if (data.TryGetProperty("battery", out var battery) && battery.TryGetProperty("percent", out _)) AddMetric(battery, "Bateria", "percent", "%");
+                AddObjectArray(data, "top_processes", "name", "ram_mib", "Processo");
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {
@@ -274,6 +282,12 @@ public partial class MainWindow : Window
                 ? detailValue.GetString() ?? "" : "";
             _viewModel.ContextItems.Add(new ContextItem(title, detail));
         }
+    }
+
+    private void AddMetric(JsonElement data, string title, string property, string suffix)
+    {
+        if (data.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.Number)
+            _viewModel.ContextItems.Add(new ContextItem(title, $"{value.GetDouble():0.#}{suffix}"));
     }
 
     private void CloseContext_Click(object sender, RoutedEventArgs e) => ContextDrawer.Visibility = Visibility.Collapsed;

@@ -47,6 +47,7 @@ from connectors.google.gmail import GmailConnector
 from connectors.google.calendar import GoogleCalendarConnector
 from connectors.registry import ConnectorRegistry
 from tools.google_workspace import GoogleWorkspaceTool
+from tools.system_status import SystemStatusTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
@@ -103,7 +104,7 @@ class NatyAssistant:
         self.tool_router = ToolRouter(tasks=task_tool, lists=list_tool, reminders=reminder_tool,
             projects=project_tool, notes=notes_tool, calendar=CalendarTool(self.db), planner=Planner(task_repo), research=research_tool,
             context=self.context, google=google_tool, automations=AutomationsTool(automation_repo), windows=WindowsActionsTool(),
-            planning=PlanningTool(self.db, task_tool, reminder_repo))
+            planning=PlanningTool(self.db, task_tool, reminder_repo), system_status=SystemStatusTool())
         self.ai = LlamaCppProvider(self.settings.ai_model_path, self.settings.ai_threads, self.settings.ai_context_size,
             self.settings.ai_idle_unload_seconds, self.settings.ai_max_ram_mb, self.settings.ai_min_available_ram_mb) if self.settings.ai_enabled else NoAIProvider()
         self.obsidian_index = ObsidianIndex(
