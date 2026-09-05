@@ -50,6 +50,7 @@ from connectors.registry import ConnectorRegistry
 from tools.google_workspace import GoogleWorkspaceTool
 from tools.system_status import SystemStatusTool
 from tools.temporal_memory import TemporalMemoryTool
+from tools.briefing import BriefingTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
@@ -149,6 +150,9 @@ class NatyAssistant:
                 self.sync.start()
             except (OSError, ValueError):
                 self.logger.exception("Falha ao iniciar sincronização")
+        self.tool_router.briefing = BriefingTool(
+            self.db, task_tool, reminder_repo, google_tool, sync_getter=lambda: self.sync
+        )
         self.state = AppState.IDLE
         self.diagnostics = DiagnosticService(self)
 

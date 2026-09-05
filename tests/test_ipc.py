@@ -44,6 +44,8 @@ class FakeSettings:
     device_name = ""
     learning_mode = "assisted"
     proactivity_level = "important"
+    daily_briefing_enabled = False
+    daily_briefing_time = "08:00"
     privacy_mode = True
     data_dir = "data"
     managed_obsidian_path = None

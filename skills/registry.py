@@ -40,6 +40,7 @@ def build_registry(tool_router) -> SkillRegistry:
         "help": ((i.HELP,), ("none",)),
         "system_status": ((i.SYSTEM_STATUS,i.SYSTEM_DIAGNOSIS), ("system:read",)),
         "temporal_memory": ((i.TEMPORAL_RECALL,), ("sqlite:activity-read",)),
+        "briefing": ((i.DAILY_BRIEFING,), ("sqlite:read", "google:optional")),
         "google_workspace": ((i.CONNECT_GOOGLE,i.DISCONNECT_GOOGLE,i.GMAIL_SEARCH,i.GMAIL_DRAFT,i.GMAIL_SEND,i.GOOGLE_CALENDAR_UPCOMING,i.GOOGLE_CALENDAR_FREE), ("oauth:google","gmail:scoped","calendar:scoped")),
     }
     registry = SkillRegistry()

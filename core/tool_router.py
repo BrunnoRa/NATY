@@ -8,7 +8,7 @@ from nlu import intents
 class ToolRouter:
     def __init__(self, *, tasks, lists, reminders, projects, notes, calendar, planner, research, context: SessionContext,
                  google=None, automations=None, windows=None, planning=None, knowledge=None, system_status=None,
-                 temporal_memory=None):
+                 temporal_memory=None, briefing=None):
         self.tasks, self.lists, self.reminders = tasks, lists, reminders
         self.projects, self.notes, self.calendar, self.planner, self.research = projects, notes, calendar, planner, research
         self.context = context
@@ -16,6 +16,7 @@ class ToolRouter:
         self.automations, self.windows, self.planning, self.knowledge = automations, windows, planning, knowledge
         self.system_status = system_status
         self.temporal_memory = temporal_memory
+        self.briefing = briefing
         self.pending_confirmation: tuple[str, dict] | None = None
 
     def execute(self, intent: Intent) -> ToolResult:
@@ -95,6 +96,8 @@ class ToolRouter:
             return self.system_status.status(e.get("focus", "general"), diagnose=name == intents.SYSTEM_DIAGNOSIS)
         if name == intents.TEMPORAL_RECALL and self.temporal_memory:
             return self.temporal_memory.recall(e.get("kind", "where_stopped"))
+        if name == intents.DAILY_BRIEFING and self.briefing:
+            return self.briefing.build()
         if name == intents.OBSIDIAN_QUERY and self.knowledge: return self.knowledge.query(e.get("query", ""))
         if name == intents.CREATE_AUTOMATION and self.automations: return self.automations.create(**e)
         if name == intents.OPEN_APP and self.windows: return self.windows.open_app(e["app"])

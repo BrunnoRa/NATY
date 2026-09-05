@@ -25,6 +25,8 @@ class RuleParser:
     def parse(self, text: str) -> Intent:
         raw, clean, plain = text, text.strip(), _plain(text.strip())
         if not clean: return Intent(intents.UNKNOWN, raw_text=raw)
+        if re.search(r"\b(?:me (?:da|de) (?:meu )?briefing|briefing do dia|como esta meu dia)\b", plain) or re.fullmatch(r"bom dia naty[!. ]*", plain):
+            return Intent(intents.DAILY_BRIEFING, raw_text=raw)
         if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)(?:\s+naty)?[!. ]*", plain):
             return Intent(intents.CHAT, {"kind": "greeting"}, raw_text=raw)
         if re.search(r"\b(que horas sao|qual (?:e )?a hora|hora agora)\b", plain):

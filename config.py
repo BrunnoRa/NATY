@@ -86,6 +86,8 @@ class Settings:
     evening_review: bool = False
     overdue_followup: bool = True
     morning_briefing_time: str = "08:00"
+    daily_briefing_enabled: bool = False
+    daily_briefing_time: str = "08:00"
     evening_review_time: str = "19:00"
     google_enabled: bool = False
     google_credentials_path: str = ""

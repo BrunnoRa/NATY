@@ -257,6 +257,12 @@ public partial class MainWindow : Window
             {
                 AddObjectArray(data, "events", "summary", "timestamp", "Atividade");
             }
+            else if (panel == "briefing")
+            {
+                AddObjectArray(data, "now", "title", "detail", "Agora");
+                AddObjectArray(data, "today", "title", "detail", "Hoje");
+                AddObjectArray(data, "attention", "title", "detail", "Atenção");
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {

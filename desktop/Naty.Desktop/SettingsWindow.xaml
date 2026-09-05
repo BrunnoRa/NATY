@@ -26,6 +26,8 @@
         <ScrollViewer><StackPanel Margin="22" MaxWidth="650" HorizontalAlignment="Left">
           <CheckBox x:Name="StartWithWindows" Content="Iniciar com Windows"/>
           <CheckBox x:Name="CloseToTray" Content="Fechar para a bandeja"/>
+          <CheckBox x:Name="DailyBriefing" Content="Preparar briefing diário (notificação discreta)"/>
+          <TextBlock Style="{StaticResource FieldLabel}" Text="Horário do briefing"/><TextBox x:Name="DailyBriefingTime" Width="360"/>
           <TextBlock Style="{StaticResource FieldLabel}" Text="Hotkey"/><TextBox x:Name="Hotkey" Width="360"/>
           <TextBlock Style="{StaticResource FieldLabel}" Text="Idioma"/><ComboBox x:Name="InterfaceLanguage" Width="360"><ComboBoxItem Content="pt-BR"/></ComboBox>
           <TextBlock Text="Algumas mudanças entram em vigor na próxima inicialização." Foreground="{StaticResource TextMuted}" Margin="0,18,0,0"/>

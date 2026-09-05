@@ -17,6 +17,7 @@ class CoreRequestHandler:
         "obsidian_enabled", "obsidian_vault_path", "naty_obsidian_path",
         "sync_enabled", "sync_folder", "device_name", "learning_mode",
         "proactivity_level", "privacy_mode",
+        "daily_briefing_enabled", "daily_briefing_time",
     }
     SETTINGS_ENUMS = {
         "learning_mode": {"manual", "assisted", "automatic_safe"},

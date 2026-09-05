@@ -44,6 +44,8 @@ class Scheduler:
                     self.notify("Tarefa pendente", f"Você ainda não concluiu '{task['title']}'.")
                     self.tasks.update(task["id"], last_prompted_at=now.isoformat(timespec="seconds"))
         if self.settings and proactivity:
+            if getattr(self.settings, "daily_briefing_enabled", False):
+                self._briefing_ready(now, getattr(self.settings, "daily_briefing_time", "08:00"))
             if self.settings.morning_briefing:
                 self._daily_summary(now, "morning", self.settings.morning_briefing_time, "Bom dia")
             if self.settings.evening_review:
@@ -66,6 +68,19 @@ class Scheduler:
             message += f", {len(due)} com prazo até hoje"
         message += "."
         self.notify(title, message)
+        self.tasks.db.execute("INSERT INTO preferences(key,value) VALUES(?,?)", (key, now.isoformat(timespec="seconds")))
+
+    def _briefing_ready(self, now: datetime, configured_time: str) -> None:
+        try:
+            hour, minute = (int(value) for value in configured_time.split(":", 1))
+        except (ValueError, AttributeError):
+            return
+        if (now.hour, now.minute) < (hour, minute):
+            return
+        key = f"daily_briefing:{now.date().isoformat()}"
+        if self.tasks.db.one("SELECT 1 FROM preferences WHERE key=?", (key,)):
+            return
+        self.notify("NATY", "Seu briefing está pronto.")
         self.tasks.db.execute("INSERT INTO preferences(key,value) VALUES(?,?)", (key, now.isoformat(timespec="seconds")))
 
     def _run(self) -> None:

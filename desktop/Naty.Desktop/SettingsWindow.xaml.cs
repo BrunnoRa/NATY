@@ -41,6 +41,7 @@ public partial class SettingsWindow : Window
         {
             var root = (await _core.RequestAsync("settings_get")).Payload;
             StartWithWindows.IsChecked = Bool(root, "start_with_windows"); CloseToTray.IsChecked = Bool(root, "close_to_tray", true);
+            DailyBriefing.IsChecked = Bool(root, "daily_briefing_enabled"); DailyBriefingTime.Text = String(root, "daily_briefing_time", "08:00");
             Hotkey.Text = String(root, "hotkey"); Select(InterfaceLanguage, String(root, "language", "pt-BR"));
             Microphone.Text = String(root, "microphone_name", $"Dispositivo {Int(root, "microphone_device", -1)}");
             Select(SttProvider, String(root, "stt_provider", "whisper_cpp")); WhisperModel.Text = String(root, "whisper_model_path");
@@ -74,6 +75,7 @@ public partial class SettingsWindow : Window
     {
         var values = new Dictionary<string, object> {
             ["start_with_windows"] = StartWithWindows.IsChecked == true, ["close_to_tray"] = CloseToTray.IsChecked == true,
+            ["daily_briefing_enabled"] = DailyBriefing.IsChecked == true, ["daily_briefing_time"] = DailyBriefingTime.Text.Trim(),
             ["hotkey"] = Hotkey.Text.Trim(), ["language"] = Selected(InterfaceLanguage), ["stt_provider"] = Selected(SttProvider),
             ["whisper_model_path"] = WhisperModel.Text.Trim(), ["tts_provider"] = Selected(TtsProvider), ["piper_model_path"] = PiperModel.Text.Trim(),
             ["voice_rate"] = Parsed(VoiceRate, 0), ["voice_volume"] = Math.Clamp(Parsed(VoiceVolume, 100), 0, 100),

@@ -25,7 +25,7 @@ class IntentRouter:
             RequestType.LOCAL_ACTION: {intents.ADD_LIST_ITEMS, intents.CHECK_LIST_ITEM, intents.REMOVE_LIST_ITEM, intents.CLEAR_CHECKED},
             RequestType.SEARCH: {intents.RESEARCH},
             RequestType.DEEP_RESEARCH: {intents.COMPARE},
-            RequestType.PLANNING: {intents.SHOW_DAY, intents.NEXT_TASK, intents.PLAN_NOW, intents.PLAN_TIME},
+            RequestType.PLANNING: {intents.SHOW_DAY, intents.NEXT_TASK,intents.PLAN_NOW,intents.PLAN_TIME,intents.DAILY_BRIEFING},
             RequestType.TASK: {intents.CREATE_TASK, intents.LIST_TASKS, intents.COMPLETE_TASK, intents.COMPLETE_LAST, intents.UPDATE_LAST, intents.POSTPONE_LAST},
             RequestType.REMINDER: {intents.CREATE_REMINDER, intents.LIST_REMINDERS},
             RequestType.OPEN_APP: {intents.OPEN_APP},
