@@ -1,29 +1,20 @@
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
-import unittest
-
-from database.connection import Database
-from database.migrations import migrate
 from database.repositories.workspaces import WorkspaceRepository
 from nlu import intents
 from nlu.parser import RuleParser
 from tools.windows_actions import WindowsActionsTool
 from tools.workspaces import WorkspaceExecutor, WorkspaceTool
+from tests.base import TempDatabaseTest
 
 
-class WorkspaceTests(unittest.TestCase):
+class WorkspaceTests(TempDatabaseTest):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
-        database = Database(Path(self.temporary.name) / "naty.db")
-        migrate(database)
+        super().setUp()
         self.opened = []
         windows = WindowsActionsTool(opener=self.opened.append)
-        self.repository = WorkspaceRepository(database)
+        self.repository = WorkspaceRepository(self.db)
         self.tool = WorkspaceTool(self.repository, WorkspaceExecutor(windows))
-
-    def tearDown(self): self.temporary.cleanup()
 
     def test_alias_activates_allowlisted_apps(self):
         saved = self.tool.save("Estudo", aliases=["foco"], actions=[{"type": "OPEN_APP", "value": "obsidian"}])
@@ -41,7 +32,7 @@ class WorkspaceTests(unittest.TestCase):
         self.assertEqual([], self.opened)
 
     def test_missing_file_is_reported_without_crashing_workspace(self):
-        self.tool.save("Arquivo", actions=[{"type": "OPEN_FILE", "value": str(Path(self.temporary.name) / "missing.md")}])
+        self.tool.save("Arquivo", actions=[{"type": "OPEN_FILE", "value": str(self.root / "missing.md")}])
         result = self.tool.activate("Arquivo")
         self.assertTrue(result.ok)
         self.assertEqual(1, len(result.data["errors"]))

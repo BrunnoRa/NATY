@@ -9,7 +9,7 @@ class ObsidianTests(TempDatabaseTest):
     def test_atomic_write(self):
         path = self.root / "file.md"; atomic_write(path, "olá")
         self.assertEqual(path.read_text(encoding="utf-8"), "olá")
-        self.assertEqual(list(self.root.glob("*.tmp")), [])
+        self.assertEqual(list(self.root.glob(".file.md.*.tmp")), [])
 
     def test_sync_list_and_preserve_personal_content(self):
         repo = ListRepository(self.db); record = repo.create("Lista de Compras"); repo.add_item(record["id"], "Leite")

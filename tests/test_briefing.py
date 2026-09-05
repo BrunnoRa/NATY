@@ -1,18 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from pathlib import Path
 from types import SimpleNamespace
-import tempfile
-import unittest
 
-from database.connection import Database
-from database.migrations import migrate
 from database.repositories.reminders import ReminderRepository
 from database.repositories.tasks import TaskRepository
 from nlu import intents
 from nlu.parser import RuleParser
 from tools.briefing import BriefingTool
+from tests.base import TempDatabaseTest
 
 
 class FakeAuth:
@@ -24,15 +20,11 @@ class FakeGmail:
     def search(self, *_args, **_kwargs): return []
 
 
-class BriefingTests(unittest.TestCase):
+class BriefingTests(TempDatabaseTest):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
-        self.db = Database(Path(self.temporary.name) / "naty.db")
-        migrate(self.db)
+        super().setUp()
         self.tasks, self.reminders = TaskRepository(self.db), ReminderRepository(self.db)
         self.now = datetime.fromisoformat("2026-09-05T09:00:00-03:00")
-
-    def tearDown(self): self.temporary.cleanup()
 
     def tool(self, google=None): return BriefingTool(self.db, self.tasks, self.reminders, google)
 

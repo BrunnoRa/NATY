@@ -1,26 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-import tempfile
-from pathlib import Path
-import unittest
-
-from database.connection import Database
-from database.migrations import migrate
 from database.repositories.temporal_memory import TemporalMemoryRepository
 from nlu import intents
 from nlu.parser import RuleParser
 from tools.temporal_memory import TemporalMemoryTool
+from tests.base import TempDatabaseTest
 
 
-class TemporalMemoryTests(unittest.TestCase):
+class TemporalMemoryTests(TempDatabaseTest):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory()
-        self.db = Database(Path(self.temporary.name) / "naty.db")
-        migrate(self.db)
+        super().setUp()
         self.repo = TemporalMemoryRepository(self.db)
-
-    def tearDown(self): self.temporary.cleanup()
 
     def test_events_are_ordered_and_filtered_by_date(self):
         now = datetime.now().astimezone()
