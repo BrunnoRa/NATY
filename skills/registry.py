@@ -27,14 +27,18 @@ class SkillRegistry:
 def build_registry(tool_router) -> SkillRegistry:
     from nlu import intents as i
     groups = {
-        "tasks": ((i.CREATE_TASK,i.LIST_TASKS,i.COMPLETE_LAST,i.UPDATE_LAST,i.POSTPONE_LAST,i.DELETE_ALL_TASKS,i.CONFIRM,i.CANCEL), ("sqlite:tasks",)),
+        "tasks": ((i.CREATE_TASK,i.LIST_TASKS,i.COMPLETE_TASK,i.COMPLETE_LAST,i.UPDATE_LAST,i.POSTPONE_LAST,i.DELETE_ALL_TASKS,i.CONFIRM,i.CANCEL), ("sqlite:tasks",)),
         "lists": ((i.CREATE_LIST,i.ADD_LIST_ITEMS,i.SHOW_LIST,i.CHECK_LIST_ITEM,i.REMOVE_LIST_ITEM,i.CLEAR_CHECKED), ("sqlite:lists","obsidian:write-managed")),
         "reminders": ((i.CREATE_REMINDER,i.LIST_REMINDERS), ("sqlite:reminders",)),
+        "automations": ((i.CREATE_AUTOMATION,), ("sqlite:automations", "notify")),
         "calendar": ((i.CREATE_APPOINTMENT,i.LIST_APPOINTMENTS), ("sqlite:calendar",)),
+        "planning": ((i.SHOW_DAY,i.NEXT_TASK,i.PLAN_NOW,i.PLAN_TIME,i.TIME_QUERY), ("sqlite:read",)),
+        "knowledge": ((i.OBSIDIAN_QUERY,), ("obsidian:read-managed", "sqlite:fts5")),
+        "windows": ((i.OPEN_APP,i.MEDIA_CONTROL,i.DELEGATE), ("windows:allowlist",)),
         "projects": ((i.CREATE_PROJECT,i.PROJECT_OVERDUE,i.CREATE_NOTE), ("sqlite:projects","obsidian:write-managed")),
         "research": ((i.RESEARCH,i.COMPARE,i.SAVE_RESEARCH,i.OPEN_RESEARCH_BROWSER), ("network:search","obsidian:write-managed")),
         "help": ((i.HELP,), ("none",)),
-        "google_workspace": ((i.CONNECT_GOOGLE,i.DISCONNECT_GOOGLE,i.GMAIL_SEARCH,i.GMAIL_DRAFT,i.GMAIL_SEND,i.GOOGLE_CALENDAR_UPCOMING), ("oauth:google","gmail:scoped","calendar:scoped")),
+        "google_workspace": ((i.CONNECT_GOOGLE,i.DISCONNECT_GOOGLE,i.GMAIL_SEARCH,i.GMAIL_DRAFT,i.GMAIL_SEND,i.GOOGLE_CALENDAR_UPCOMING,i.GOOGLE_CALENDAR_FREE), ("oauth:google","gmail:scoped","calendar:scoped")),
     }
     registry = SkillRegistry()
     for name, (names, permissions) in groups.items():

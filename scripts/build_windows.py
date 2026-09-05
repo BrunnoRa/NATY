@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import shutil
 import subprocess
 import sys
@@ -8,7 +9,9 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "2.1.0"
+VERSION = "3.0.0"
+DIST = ROOT / "dist"
+HYBRID = DIST / "NatyHybrid"
 
 
 def run(*args: str) -> None:
@@ -20,49 +23,58 @@ def find_iscc() -> Path | None:
     located = shutil.which("ISCC.exe")
     candidates = [
         Path(located) if located else None,
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Inno Setup 6" / "ISCC.exe",
         Path(r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe"),
         Path(r"C:\Program Files\Inno Setup 6\ISCC.exe"),
     ]
     return next((path for path in candidates if path and path.is_file()), None)
 
 
+def dotnet() -> Path:
+    bundled = ROOT / ".dotnet" / "dotnet.exe"
+    if bundled.is_file():
+        return bundled
+    located = shutil.which("dotnet")
+    if located:
+        return Path(located)
+    raise FileNotFoundError("SDK .NET 8 não encontrado.")
+
+
 def portable_package(app_dir: Path) -> Path:
     output_dir = ROOT / "installer"
-    stage = output_dir / f"Naty-Windows-{VERSION}"
-    if stage.exists():
-        shutil.rmtree(stage)
-    shutil.copytree(app_dir, stage / "Naty")
-    for name in ("install_naty.ps1", "uninstall_naty.ps1", "Instalar Naty.cmd"):
-        shutil.copy2(ROOT / "packaging" / name, stage / name)
-    (stage / "LEIA-ME.txt").write_text(
-        "NATY 2.1\n\nExecute 'Instalar Naty.cmd'.\n"
-        "A instalação é feita apenas para o usuário atual e cria atalhos no Desktop e menu Iniciar.\n",
-        encoding="utf-8",
-    )
+    output_dir.mkdir(parents=True, exist_ok=True)
     zip_path = output_dir / f"Naty-Windows-{VERSION}.zip"
     if zip_path.exists():
         zip_path.unlink()
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as archive:
-        for source in stage.rglob("*"):
+        for source in app_dir.rglob("*"):
             if source.is_file():
-                archive.write(source, source.relative_to(stage.parent))
+                archive.write(source, Path("NATY") / source.relative_to(app_dir))
     return zip_path
 
 
 def main() -> int:
     run(sys.executable, "-m", "scripts.generate_assets")
-    run(sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", "naty.spec")
-    app_dir = ROOT / "dist" / "Naty"
-    executable = app_dir / "Naty.exe"
-    if not executable.is_file():
-        raise FileNotFoundError(executable)
-    archive = portable_package(app_dir)
+    run(sys.executable, "-m", "PyInstaller", "--clean", "--noconfirm", "naty_core.spec")
+    if HYBRID.exists():
+        shutil.rmtree(HYBRID)
+    run(str(dotnet()), "publish", "desktop/Naty.Desktop/Naty.Desktop.csproj", "-c", "Release",
+        "-r", "win-x64", "--self-contained", "true", "-o", str(HYBRID),
+        "--source", "https://api.nuget.org/v3/index.json")
+    shutil.copytree(DIST / "Naty.Core", HYBRID / "Core")
+    shutil.copy2(ROOT / "config.example.toml", HYBRID / "config.example.toml")
+    expected = (HYBRID / "Naty.exe", HYBRID / "Core" / "Naty.Core.exe")
+    missing = [str(path) for path in expected if not path.is_file()]
+    if missing:
+        raise FileNotFoundError("Artefatos híbridos ausentes: " + ", ".join(missing))
+    archive = portable_package(HYBRID)
     print(f"Pacote portátil: {archive}")
     iscc = find_iscc()
     if iscc:
         run(str(iscc), str(ROOT / "packaging" / "Naty.iss"))
+        print(f"Instalador: {ROOT / 'installer' / 'NatySetup.exe'}")
     else:
-        print("Inno Setup não encontrado; o ZIP instalável foi criado normalmente.")
+        print("Inno Setup não encontrado; o ZIP híbrido foi criado e NatySetup.exe não foi compilado.")
     return 0
 
 

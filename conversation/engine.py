@@ -18,6 +18,8 @@ class ConversationEngine:
 
     def respond(self, text: str) -> ToolResult:
         plain = _plain(text); state = self.context.state
+        if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)(?:\s+naty)?[!. ]*", plain):
+            return ToolResult(True, "Oi! O que você precisa?", type="chat")
         if state.get("pending_memory_delete") and plain in {"sim", "confirmo", "pode"}:
             memory_id = state.pop("pending_memory_delete"); self.memories.delete(memory_id)
             return ToolResult(True, "Esqueci essa informação.")
@@ -69,7 +71,10 @@ class ConversationEngine:
                       f"{context_data}\n\nUSUÁRIO: {text}\nNATY:")
             try: return ToolResult(True, self.ai.generate(prompt))
             except RuntimeError: pass
-        tasks = self.tasks.list("pending")
-        if tasks:
-            return ToolResult(True, f"Entendi. Você tem {len(tasks)} pendência(s) agora. Posso mostrar a prioridade, reorganizar uma delas ou apenas conversar sobre o que está travando.")
-        return ToolResult(True, "Entendi. Posso conversar sobre isso e, quando houver uma ação concreta, registrar sem perder o contexto.")
+        return ToolResult(
+            False,
+            "Não consegui identificar exatamente o que você quer. Você quer pesquisar, criar uma tarefa ou apenas conversar?",
+            type="clarification",
+            error="low_confidence",
+            ui_hint={"mode": "conversation", "panel": "conversation", "title": "Esclarecer pedido"},
+        )

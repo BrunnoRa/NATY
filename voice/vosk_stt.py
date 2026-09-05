@@ -25,7 +25,7 @@ class VoskSTT(STTProvider):
         self.last_gain = 1.0
 
     def available(self) -> bool:
-        if not Path(self.model_path).is_dir(): return False
+        if not self.model_path or not Path(self.model_path).is_dir(): return False
         try: import vosk, sounddevice  # noqa: F401
         except ImportError: return False
         return True
@@ -67,7 +67,7 @@ class VoskSTT(STTProvider):
         assert last_error is not None
         raise last_error
 
-    def listen_once(self, timeout: float = 8.0, on_level: Callable[[float], None] | None = None) -> str:
+    def listen_once(self, timeout: float = 8.0, on_level: Callable[[float], None] | None = None, on_state=None) -> str:
         if not self.available(): raise RuntimeError("Vosk, sounddevice ou modelo pt-BR indisponível.")
         import sounddevice as sd
         from vosk import KaldiRecognizer, Model
@@ -103,6 +103,7 @@ class VoskSTT(STTProvider):
                     if speech_seen and now - last_voice_at > 1.2:
                         break
                 text = json.loads(recognizer.FinalResult()).get("text", "").strip()
+                if on_state: on_state("TRANSCRIBING")
                 self.last_transcription = text
                 return text
         finally:

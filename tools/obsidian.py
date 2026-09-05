@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import os
 import re
 import tempfile
@@ -102,4 +103,17 @@ class ObsidianTool:
         from knowledge.markdown import yaml_frontmatter
         prefix = yaml_frontmatter("research" if mapped == "06 - Pesquisas" else "note", date.today().isoformat()) if not existing else existing
         atomic_write(path, replace_managed_block(prefix, f"# {title}\n\n{body}"))
+        return path
+
+    def append_evolution(self, entry: dict) -> Path | None:
+        if not self.available: return None
+        self.initialize()
+        path = self._managed_path("05 - Memórias", "Evolução da NATY.md")
+        existing = path.read_text(encoding="utf-8") if path.exists() else "# Evolução da NATY\n"
+        match = re.search(re.escape(BEGIN) + r"\n?(.*?)\n?" + re.escape(END), existing, re.DOTALL)
+        previous = match.group(1).rstrip() if match else ""
+        block = previous + ("\n\n" if previous else "") + "\n".join(
+            f"- {key}: {json.dumps(value, ensure_ascii=False) if isinstance(value, (dict, list)) else value}"
+            for key, value in entry.items())
+        atomic_write(path, replace_managed_block(existing, block))
         return path

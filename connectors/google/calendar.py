@@ -34,6 +34,10 @@ class GoogleCalendarConnector(Connector):
             singleEvents=True, orderBy="startTime", maxResults=max_results,
         ).execute().get("items", [])
 
+    def between(self, starts_at: str, ends_at: str, max_results: int = 20) -> list[dict]:
+        return self._api().events().list(calendarId="primary", timeMin=starts_at, timeMax=ends_at,
+            singleEvents=True, orderBy="startTime", maxResults=max_results).execute().get("items", [])
+
     def create(self, title: str, starts_at: str, ends_at: str | None = None, description: str = "") -> dict:
         if not ends_at:
             ends_at = (datetime.fromisoformat(starts_at) + timedelta(hours=1)).isoformat()

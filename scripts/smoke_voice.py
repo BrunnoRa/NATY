@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from config import Settings
-from voice.devices import default_input_device_id, friendly_audio_error, list_microphones, measure_microphone_level
+from voice.devices import default_input_device_id, friendly_audio_error, list_microphones, measure_microphone_level, resolve_microphone
 from voice.sapi_tts import SapiTTS
 from voice.vosk_stt import VoskSTT
 
@@ -19,18 +19,23 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Diagnóstico reproduzível de voz da Naty")
     parser.add_argument("--listen", action="store_true", help="faz contagem regressiva e transcreve até 7 segundos")
     parser.add_argument("--speak", action="store_true", help="reproduz uma frase pela voz SAPI selecionada")
+    parser.add_argument("--device", type=int, help="testa temporariamente um ID sem alterar a configuração")
     args = parser.parse_args()
     settings = Settings.load()
     devices = list_microphones()
     voices = SapiTTS.list_voices()
-    selected = next((device for device in devices if device["id"] == settings.microphone_device), None)
+    selected = (next((device for device in devices if device["id"] == args.device), None) if args.device is not None
+                else resolve_microphone(settings.microphone_device, settings.microphone_name,
+                                        settings.microphone_hostapi, settings.microphone_sample_rate))
+    effective_device = selected["id"] if selected else -1
 
     print(f"Dispositivo padrão: {default_input_device_id()}")
     for device in devices:
-        marker = "*" if device["id"] == settings.microphone_device else " "
+        marker = "*" if device["id"] == effective_device else " "
         print(f"{marker} [{device['id']}] {device['name']} · {device['hostapi']} · "
               f"{device['channels']} canal(is) · {device['default_samplerate']} Hz")
     print(f"Selecionado: {selected['name'] if selected else 'indisponível'}")
+    print(f"Provider STT configurado: {settings.stt_provider}")
     print(f"Vosk instalado/modelo: {VoskSTT(settings.vosk_model_path).available()} · {settings.vosk_model_path}")
     print(f"Ganho: {'automático' if settings.automatic_gain_enabled else 'fixo'} · máximo {settings.microphone_gain:.1f}x")
     print("Vozes SAPI:")

@@ -4,6 +4,7 @@ import base64
 import locale
 import os
 import subprocess
+import threading
 
 from voice.tts_base import TTSProvider
 
@@ -11,6 +12,8 @@ from voice.tts_base import TTSProvider
 class SapiTTS(TTSProvider):
     def __init__(self, voice: str = "", rate: int = 0, volume: int = 100):
         self.voice, self.rate, self.volume = voice, max(-10, min(10, rate)), max(0, min(100, volume))
+        self._process = None
+        self._lock = threading.Lock()
 
     def available(self) -> bool: return os.name == "nt"
 
@@ -73,5 +76,20 @@ class SapiTTS(TTSProvider):
             f"$t=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('{encoded}'));"
             "[void]$s.Speak($t)"
         )
-        subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
-                       check=False, timeout=max(15, len(text) // 8), creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        with self._lock:
+            self._process = subprocess.Popen(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
+                                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            process = self._process
+        try:
+            process.wait(timeout=max(15, len(text) // 8))
+        except subprocess.TimeoutExpired:
+            process.terminate()
+        finally:
+            with self._lock:
+                if self._process is process: self._process = None
+
+    def stop(self) -> None:
+        with self._lock:
+            process = self._process
+        if process is not None and process.poll() is None:
+            process.terminate()

@@ -1,16 +1,27 @@
-# Arquitetura V2
+# Arquitetura híbrida NATY V3
 
 ## Fluxo principal
 
 ```text
-texto / push-to-talk
-  → IntentRouter (regras)
-  → AgentRouter
+Naty.Desktop (C# / .NET / WPF)
+  → JSON protocol v1 → Windows Named Pipes → core_host.py
+  → IntentRouter (regras) → AgentRouter
       → SkillRegistry fechado → ToolRouter → repositório/conector
       → ConversationEngine → retrieval local → LLM opcional
-  → ResponseFormatter
-  → UI / SAPI opcional
+  → resposta JSON → Desktop / HUD / TTS
 ```
+
+O Desktop é responsável pela experiência Windows. O Core Python continua responsável por regras, contexto,
+skills, memória, SQLite, Obsidian, pesquisa e integrações. Não existe servidor HTTP local.
+
+## IPC e tolerância a falhas
+
+- protocolo pequeno e versionado: `protocol`, `type`, `request_id` e `payload`;
+- limite de 64 KiB por mensagem e allowlist de tipos;
+- Named Pipe `Naty.Core.v1`, com timeout e uma conexão curta por request;
+- o Desktop inicia o Core da `.venv` quando necessário, mostra `Core desconectado` e tenta reconexão controlada;
+- `shutdown` encerra o Core de forma explícita; o Desktop não trava se o pipe cair;
+- `dashboard` e `graph` retornam dados reais dos repositórios e do KnowledgeGraph.
 
 A sequência segue o que foi útil em JARVIS: planejar/rotear, selecionar capacidade, executar e responder. A implementação não copia sua pilha pesada de modelos. De OpenJarvis, adota local-first, engines preguiçosas, skills explícitas, memória e agentes agendados, mantendo tudo apropriado para Windows e pouca RAM.
 
@@ -24,9 +35,11 @@ A sequência segue o que foi útil em JARVIS: planejar/rotear, selecionar capaci
 - `conversation/`: diálogo determinístico e fallback de IA;
 - `research/`: `ResearchProvider`, DDGS, Perplexity opcional, leitura limitada, claims e fallback;
 - `connectors/`: registro preguiçoso, Google OAuth, Gmail e Calendar;
-- `voice/`: Vosk, SAPI/COM, diagnóstico de dispositivos e `VoiceSession` com janela configurável de continuação;
+- `voice/`: pipeline PCM com pre-roll/VAD energético, whisper.cpp principal quando configurado, Vosk fallback,
+  SAPI/COM, diagnóstico e `VoiceSession` com janela configurável de continuação;
 - `scheduler/`: lembretes, briefing/revisão opt-in e follow-up anti-spam;
-- `ui/`: dashboard, HUD, onboarding, voz e grafo sem expor cadeia de raciocínio.
+- `desktop/Naty.Desktop/`: dashboard e HUD WPF, tray, hotkey, métricas e grafo real;
+- `ui/`: GUI Tkinter legada mantida apenas como fallback de desenvolvimento.
 
 ## Dados e contexto
 

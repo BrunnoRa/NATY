@@ -1,5 +1,23 @@
 # NATY Agent V2
 
+> A arquitetura ativa está migrando para a V3 híbrida: Desktop C#/.NET/WPF e Core Python unidos por
+> Windows Named Pipes. A GUI Tkinter permanece somente como fallback de desenvolvimento.
+
+## Desktop WPF em desenvolvimento
+
+```powershell
+$env:DOTNET_ROOT = "$PWD\.dotnet"
+.\.dotnet\dotnet.exe build desktop\Naty.Desktop\Naty.Desktop.csproj
+.\desktop\Naty.Desktop\bin\Debug\net8.0-windows\Naty.Desktop.exe
+```
+
+O Desktop inicia `core_host.py` pela `.venv`, reconecta sem bloquear a janela e consome apenas mensagens
+JSON do protocolo v1 no pipe `Naty.Core.v1`. Para validar sem interação:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.smoke_ipc
+```
+
 Naty é uma agente pessoal local para Windows 11. O núcleo funciona sem LLM e sem nuvem: tarefas, projetos, listas, lembretes, agenda local, notas, memória consentida, planejamento e busca no Vault usam regras, SQLite e FTS5. IA local, voz, pesquisa web e Google Workspace são camadas opcionais e isoladas.
 
 ## Aplicativo Windows

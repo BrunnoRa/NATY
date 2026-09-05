@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
+import sys
 import threading
 import time
 import tkinter as tk
 from tkinter import ttk
 
-from voice.devices import default_input_device_id, friendly_audio_error, list_microphones
+from voice.devices import default_input_device_id, friendly_audio_error, list_microphones, resolve_microphone
 from voice.sapi_tts import SapiTTS
+from voice.piper_tts import PiperTTS
+from voice.piper_setup import diagnostics as piper_diagnostics
 from voice.vosk_stt import VoskSTT
+from voice.whisper_setup import diagnostics as whisper_diagnostics
 
 
 class VoiceSettingsWindow:
@@ -41,7 +46,12 @@ class VoiceSettingsWindow:
         )
         ttk.Label(frame, text="Microfone").grid(row=1, column=0, sticky="w")
         names = [self._device_label(device) for device in self.microphones]
-        current = next((name for name in names if name.startswith(f"{self.settings.microphone_device} ·")),
+        resolved = resolve_microphone(self.settings.microphone_device,
+                                      getattr(self.settings, "microphone_name", ""),
+                                      getattr(self.settings, "microphone_hostapi", ""),
+                                      getattr(self.settings, "microphone_sample_rate", 0))
+        current_id = resolved["id"] if resolved else self.settings.microphone_device
+        current = next((name for name in names if name.startswith(f"{current_id} ·")),
                        next((name for name in names if "[padrão]" in name), names[0] if names else "Nenhum microfone"))
         self.mic = tk.StringVar(value=current)
         combo = ttk.Combobox(frame, textvariable=self.mic, values=names, state="readonly")
@@ -62,10 +72,15 @@ class VoiceSettingsWindow:
         stt = VoskSTT(self.settings.vosk_model_path, device=self.selected_device(),
                       microphone_gain=self.settings.microphone_gain,
                       automatic_gain=self.settings.automatic_gain_enabled).diagnostics()
-        model_text = "✓ disponível" if stt["vosk_installed"] and stt["sounddevice_installed"] and stt["model_available"] else "! incompleto"
-        ttk.Label(frame, text="Vosk / modelo").grid(row=5, column=0, sticky="w")
-        ttk.Label(frame, text=f"{model_text} · {stt['model_path']}", wraplength=580).grid(
-            row=5, column=1, columnspan=2, sticky="w", padx=8)
+        whisper = whisper_diagnostics(self.settings.whisper_executable_path, self.settings.whisper_model_path)
+        if self.settings.stt_provider == "whisper_cpp":
+            model_text = whisper["status"]
+        else:
+            ready = stt["vosk_installed"] and stt["sounddevice_installed"] and stt["model_available"]
+            model_text = f"Vosk {'pronto' if ready else 'incompleto'} · {stt['model_path']}"
+        ttk.Label(frame, text="STT / modelo").grid(row=5, column=0, sticky="w")
+        ttk.Label(frame, text=model_text, wraplength=460).grid(row=5, column=1, sticky="w", padx=8)
+        ttk.Button(frame, text="Configurar", command=self.configure_whisper).grid(row=5, column=2, sticky="e")
         ttk.Label(frame, text="Última transcrição").grid(row=6, column=0, sticky="nw", pady=(10, 0))
         ttk.Label(frame, textvariable=self.transcription, wraplength=570).grid(
             row=6, column=1, columnspan=2, sticky="w", padx=8, pady=(10, 0))
@@ -81,7 +96,10 @@ class VoiceSettingsWindow:
         self.voice = tk.StringVar(value=selected_voice)
         ttk.Combobox(frame, textvariable=self.voice, values=voice_labels, state="readonly").grid(
             row=9, column=1, sticky="ew", padx=8, pady=(12, 0))
-        ttk.Button(frame, text="Ouvir exemplo", command=self.test_tts).grid(row=9, column=2, pady=(12, 0))
+        preview = ttk.Frame(frame)
+        preview.grid(row=9, column=2, pady=(12, 0))
+        ttk.Button(preview, text="TESTAR NATY", command=lambda: self.test_tts(True)).pack(fill="x")
+        ttk.Button(preview, text="TESTAR SAPI", command=lambda: self.test_tts(False)).pack(fill="x", pady=(4, 0))
         if not any(v.get("gender", "").casefold() == "female" and v.get("culture", "").casefold().startswith("pt-br") for v in self.voices):
             ttk.Label(frame, text=SapiTTS.windows_voice_setup_instructions(), wraplength=700).grid(
                 row=10, column=0, columnspan=3, sticky="w", pady=(6, 0))
@@ -195,17 +213,43 @@ class VoiceSettingsWindow:
             self.transcription.set("Áudio sem palavras reconhecidas")
             self.status.set("O microfone recebeu sinal, mas o Vosk não reconheceu a frase. Fale mais perto e reduza ruído ambiente.")
 
-    def test_tts(self) -> None:
+    def test_tts(self, neural: bool = True) -> None:
         self.status.set("Reproduzindo exemplo…")
         def work() -> None:
-            SapiTTS(self.selected_voice(), int(self.rate.get()), int(self.volume.get())).speak("Olá. Esta é a voz da Naty.")
-            self.win.after(0, self.status.set, "Exemplo concluído.")
+            try:
+                if neural:
+                    status = piper_diagnostics(self.settings.piper_executable_path, self.settings.piper_model_path,
+                                               self.settings.piper_config_path)
+                    if not status["ready"]:
+                        self.win.after(0, self.status.set, "Piper neural não instalado. Execute scripts/setup_piper.py.")
+                        return
+                    provider = PiperTTS(self.settings.piper_executable_path, self.settings.piper_model_path,
+                                        self.settings.piper_config_path)
+                    phrase = "Olá. Eu sou a Naty. Você tem três tarefas importantes hoje."
+                else:
+                    provider = SapiTTS(self.selected_voice(), int(self.rate.get()), int(self.volume.get()))
+                    phrase = "Olá. Esta é a voz SAPI de reserva da Naty."
+                provider.speak(phrase)
+                self.win.after(0, self.status.set, "Exemplo concluído.")
+            except Exception as exc:
+                self.win.after(0, self.status.set, f"Falha no teste de voz: {exc}")
         threading.Thread(target=work, name="NatyVoicePreview", daemon=True).start()
+
+    def configure_whisper(self) -> None:
+        script = Path(__file__).resolve().parents[1] / "scripts" / "setup_whisper.py"
+        flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+        subprocess.Popen([sys.executable, str(script)], creationflags=flags)
+        self.status.set("Configuração do Whisper aberta. Reabra esta tela quando ela terminar.")
 
     def save(self) -> None:
         self.settings.voice_enabled = self.voice_enabled.get()
         self.settings.tts_enabled = self.tts_enabled.get()
         self.settings.microphone_device = self.selected_device()
+        selected = next((device for device in self.microphones if device["id"] == self.settings.microphone_device), None)
+        if selected:
+            self.settings.microphone_name = selected["name"]
+            self.settings.microphone_hostapi = selected.get("hostapi", "")
+            self.settings.microphone_sample_rate = int(selected.get("default_samplerate", 0))
         self.settings.microphone_gain = max(1.0, min(20.0, float(self.gain.get())))
         self.settings.automatic_gain_enabled = self.auto_gain.get()
         self.settings.voice = self.selected_voice()

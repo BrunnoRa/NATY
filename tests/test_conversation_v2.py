@@ -22,4 +22,5 @@ class ConversationV2Tests(TempDatabaseTest):
 
     def test_unknown_has_deterministic_fallback_without_ai(self):
         response = self.assistant.handle("queria pensar em uma coisa")
-        self.assertIn("Entendi", response)
+        self.assertIn("Não consegui identificar", response)
+        self.assertNotIn("Posso te ajudar com isso", response)

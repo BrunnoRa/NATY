@@ -1,0 +1,28 @@
+<Window x:Class="Naty.Desktop.VoiceAccuracyWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Teste de precisão da voz" Width="720" Height="590" MinWidth="620" MinHeight="500"
+        Background="{StaticResource BgMain}" WindowStartupLocation="CenterOwner">
+  <Grid Margin="22">
+    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <StackPanel>
+      <TextBlock Text="TESTE DE PRECISÃO — 10 FRASES" FontSize="22" FontWeight="SemiBold"/>
+      <TextBlock Text="Este modo apenas transcreve: os comandos falados não são executados." Foreground="{StaticResource TextSecondary}" Margin="0,5,0,0"/>
+    </StackPanel>
+    <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,18,0,12">
+      <StackPanel>
+        <TextBlock x:Name="ProgressText" Foreground="{StaticResource Cyan}"/>
+        <TextBlock x:Name="ExpectedText" FontSize="18" TextWrapping="Wrap" Margin="0,8,0,4"/>
+        <TextBlock x:Name="LiveStatus" Foreground="{StaticResource TextSecondary}" Text="Pronto para gravar."/>
+      </StackPanel>
+    </Border>
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,12">
+      <Button x:Name="RecordButton" Content="Gravar frase" Click="Record_Click" Margin="0,0,8,0"/>
+      <Button Content="Copiar resultados" Click="Copy_Click"/>
+    </StackPanel>
+    <TextBox Grid.Row="3" x:Name="Results" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+             VerticalScrollBarVisibility="Auto" Background="{StaticResource BgPanel}" Foreground="{StaticResource TextPrimary}"
+             BorderBrush="{StaticResource Border}" Padding="12" FontFamily="Cascadia Mono, Consolas"/>
+    <Button Grid.Row="4" Content="Fechar" Click="Close_Click" HorizontalAlignment="Right" Margin="0,12,0,0"/>
+  </Grid>
+</Window>

@@ -21,6 +21,18 @@ class TasksTool:
         task = self.repo.complete(task_id)
         return ToolResult(bool(task), f"Concluí '{task['title']}'." if task else "Não encontrei essa tarefa.", task, "task", task_id if task else None)
 
+    def complete_named(self, query: str) -> ToolResult:
+        needle = query.casefold().strip()
+        matches = [task for task in self.repo.list("pending") if needle in task["title"].casefold()]
+        if not matches:
+            return ToolResult(False, f"Não encontrei uma tarefa pendente chamada '{query}'.", type="task_not_found", error="task_not_found")
+        if len(matches) > 1:
+            return ToolResult(False, "Encontrei mais de uma tarefa parecida. Qual delas você quer concluir?", matches,
+                              type="clarification", error="ambiguous_task")
+        result = self.complete(matches[0]["id"])
+        result.type = "task_completed"
+        return result
+
     def update(self, task_id: int, **changes) -> ToolResult:
         task = self.repo.update(task_id, **changes)
         return ToolResult(bool(task), "Feito. Atualizei a tarefa." if task else "Não encontrei essa tarefa.", task, "task", task_id if task else None)

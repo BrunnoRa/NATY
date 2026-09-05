@@ -35,6 +35,43 @@ def list_microphones() -> list[dict]:
     return result
 
 
+def _device_key(value: object) -> str:
+    return " ".join(str(value or "").casefold().split())
+
+
+def resolve_microphone(
+    device_id: int = -1,
+    name: str = "",
+    hostapi: str = "",
+    sample_rate: int = 0,
+) -> dict | None:
+    """Resolve um microfone por identidade estável após o Windows renumerar IDs."""
+    devices = list_microphones()
+    if not devices:
+        return None
+
+    stored = next((device for device in devices if device["id"] == device_id), None)
+    wanted_name, wanted_host = _device_key(name), _device_key(hostapi)
+    if wanted_name:
+        candidates = [device for device in devices if _device_key(device.get("name")) == wanted_name]
+        if wanted_host:
+            same_host = [device for device in candidates if _device_key(device.get("hostapi")) == wanted_host]
+            if same_host:
+                candidates = same_host
+        if sample_rate:
+            same_rate = [device for device in candidates if int(device.get("default_samplerate", 0)) == int(sample_rate)]
+            if same_rate:
+                candidates = same_rate
+        if stored in candidates:
+            return dict(stored)
+        if candidates:
+            return dict(next((device for device in candidates if device.get("is_default")), candidates[0]))
+
+    if stored:
+        return dict(stored)
+    return dict(next((device for device in devices if device.get("is_default")), devices[0]))
+
+
 def validate_microphone(device_id: int) -> tuple[bool, str]:
     devices = list_microphones()
     if not devices: return False, "Nenhum microfone de entrada foi encontrado."
@@ -83,20 +120,25 @@ def measure_microphone_level(
         import sounddevice as sd
     except ImportError:
         return {"ok": False, "peak": 0.0, "reason": "O pacote sounddevice não está instalado."}
-    levels: list[float] = []
-
-    def callback(indata, frames, time_info, status):
-        level = audio_level(bytes(indata)); levels.append(level)
-        if on_level: on_level(level)
-
-    kwargs = {"samplerate": sample_rate, "blocksize": 1600, "dtype": "int16", "channels": 1, "callback": callback}
-    if device_id >= 0: kwargs["device"] = device_id
     started = time.perf_counter()
     try:
-        with sd.RawInputStream(**kwargs):
-            sd.sleep(max(1, int(duration * 1000)))
-    except Exception as exc:
-        return {"ok": False, "peak": max(levels or [0.0]), "latency_ms": (time.perf_counter() - started) * 1000,
-                "reason": friendly_audio_error(exc)}
-    return {"ok": True, "peak": max(levels or [0.0]), "latency_ms": (time.perf_counter() - started) * 1000,
-            "reason": "Áudio capturado."}
+        selected = device_id if device_id >= 0 else None
+        native_rate = int(sd.query_devices(selected, "input").get("default_samplerate", sample_rate))
+    except Exception:
+        native_rate = sample_rate
+    last_error = None
+    for rate in dict.fromkeys((sample_rate, native_rate)):
+        levels: list[float] = []
+        def callback(indata, frames, time_info, status):
+            level = audio_level(bytes(indata)); levels.append(level)
+            if on_level: on_level(level)
+        kwargs = {"samplerate": rate, "blocksize": max(800, rate // 10), "dtype": "int16", "channels": 1, "callback": callback}
+        if device_id >= 0: kwargs["device"] = device_id
+        try:
+            with sd.RawInputStream(**kwargs): sd.sleep(max(1, int(duration * 1000)))
+            return {"ok": True, "peak": max(levels or [0.0]), "sample_rate": rate,
+                    "latency_ms": (time.perf_counter() - started) * 1000, "reason": "Áudio capturado."}
+        except Exception as exc:
+            last_error = exc
+    return {"ok": False, "peak": 0.0, "sample_rate": native_rate,
+            "latency_ms": (time.perf_counter() - started) * 1000, "reason": friendly_audio_error(last_error or "erro desconhecido")}

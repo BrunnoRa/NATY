@@ -63,8 +63,12 @@ def main() -> int:
     if not any(item["id"] == device_id for item in microphones):
         print("Dispositivo inválido. Execute novamente e escolha um ID listado."); return 2
     settings.vosk_model_path, settings.microphone_device, settings.voice_enabled = str(model_path), device_id, True
+    selected = next(d for d in microphones if d["id"] == device_id)
+    settings.microphone_name = selected["name"]
+    settings.microphone_hostapi = selected.get("hostapi", "")
+    settings.microphone_sample_rate = int(selected.get("default_samplerate", 0))
     if not settings.voice: settings.voice = SapiTTS.preferred_voice()
-    settings.save(); print(f"Configurado: {next(d['name'] for d in microphones if d['id'] == device_id)}")
+    settings.save(); print(f"Configurado: {selected['name']}")
     if args.skip_live_test: return 0
     print("Fale um comando curto em português (até 8 segundos)...")
     try: text = VoskSTT(str(model_path), device=device_id).listen_once(8)
