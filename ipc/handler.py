@@ -213,6 +213,20 @@ class CoreRequestHandler:
         if type_ == "diagnostics":
             hotkey = str(message["payload"].get("hotkey", "unknown"))
             return response(message, "diagnostics", self.assistant.diagnostics.run(hotkey, "ok", "ok"))
+        if type_ == "workspace_list":
+            return response(message, "workspace_list", {"workspaces": self.assistant.workspace_repo.list(False)})
+        if type_ == "workspace_save":
+            payload = message["payload"]
+            result = self.assistant.workspaces.save(
+                str(payload.get("name", "")), workspace_id=payload.get("workspace_id"),
+                aliases=payload.get("aliases") if isinstance(payload.get("aliases"), list) else [],
+                actions=payload.get("actions") if isinstance(payload.get("actions"), list) else [],
+                focus_minutes=payload.get("focus_minutes"), enabled=bool(payload.get("enabled", True)),
+            )
+            return response(message, "workspace_result", result.payload())
+        if type_ == "workspace_activate":
+            result = self.assistant.workspaces.activate(str(message["payload"].get("name", "")))
+            return response(message, "workspace_result", result.payload())
         if type_ == "shutdown":
             if self._voice is not None:
                 self._voice.close()

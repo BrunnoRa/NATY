@@ -12,6 +12,7 @@ ALLOWED_TYPES = {
     "voice_start", "voice_status", "voice_stop",
     "voice_precision_start", "voice_precision_status", "voice_precision_stop",
     "settings_get", "settings_save", "sync_now", "diagnostics", "shutdown",
+    "workspace_list", "workspace_save", "workspace_activate",
 }
 
 

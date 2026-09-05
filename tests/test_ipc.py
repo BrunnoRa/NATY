@@ -118,6 +118,10 @@ class IPCProtocolTests(unittest.TestCase):
             message = request(type_, request_id=type_)
             self.assertEqual(decode_message(encode_message(message))["type"], type_)
 
+    def test_workspace_messages_are_allowed_by_protocol(self):
+        for type_ in ("workspace_list", "workspace_save", "workspace_activate"):
+            self.assertEqual(type_, decode_message(encode_message(request(type_)))["type"])
+
     def test_settings_are_filtered_validated_and_persisted(self):
         handler = CoreRequestHandler(FakeAssistant())
         payload = handler.handle(request("settings_get", request_id="settings"))["payload"]

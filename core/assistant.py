@@ -23,6 +23,7 @@ from database.repositories.reminders import ReminderRepository
 from database.repositories.tasks import TaskRepository
 from database.repositories.automations import AutomationRepository
 from database.repositories.temporal_memory import TemporalMemoryRepository
+from database.repositories.workspaces import WorkspaceRepository
 from planner.planner import Planner
 from conversation.engine import ConversationEngine
 from knowledge.graph import KnowledgeGraph
@@ -51,6 +52,7 @@ from tools.google_workspace import GoogleWorkspaceTool
 from tools.system_status import SystemStatusTool
 from tools.temporal_memory import TemporalMemoryTool
 from tools.briefing import BriefingTool
+from tools.workspaces import WorkspaceExecutor, WorkspaceTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
@@ -80,6 +82,7 @@ class NatyAssistant:
         project_repo, reminder_repo = ProjectRepository(self.db), ReminderRepository(self.db)
         automation_repo = AutomationRepository(self.db)
         self.temporal_repo = TemporalMemoryRepository(self.db)
+        self.workspace_repo = WorkspaceRepository(self.db)
         self.session_id = uuid4().hex
         self.temporal_repo.prune()
         self.reminder_repo, self.memory_repo = reminder_repo, MemoryRepository(self.db)
@@ -153,6 +156,8 @@ class NatyAssistant:
         self.tool_router.briefing = BriefingTool(
             self.db, task_tool, reminder_repo, google_tool, sync_getter=lambda: self.sync
         )
+        self.workspaces = WorkspaceTool(self.workspace_repo, WorkspaceExecutor(self.tool_router.windows))
+        self.tool_router.workspaces = self.workspaces
         self.state = AppState.IDLE
         self.diagnostics = DiagnosticService(self)
 
@@ -255,6 +260,7 @@ class NatyAssistant:
             "update_last": "TASK", "postpone_last": "TASK", "research": "RESEARCH",
             "deep_research": "RESEARCH", "create_project": "PROJECT",
             "automation_created": "AUTOMATION", "learning_saved": "DECISION",
+            "workspace_saved": "WORKSPACE", "workspace_activated": "WORKSPACE",
         }
         event_type = mapping.get(result.type)
         if not event_type:

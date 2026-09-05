@@ -35,6 +35,7 @@ class RequestType(str, Enum):
     DELEGATE = "DELEGATE"
     SYSTEM = "SYSTEM"
     CONTEXT = "CONTEXT"
+    WORKSPACE = "WORKSPACE"
     CLARIFICATION = "CLARIFICATION"
 
 

@@ -30,6 +30,7 @@
           <TextBlock Style="{StaticResource FieldLabel}" Text="Horário do briefing"/><TextBox x:Name="DailyBriefingTime" Width="360"/>
           <TextBlock Style="{StaticResource FieldLabel}" Text="Hotkey"/><TextBox x:Name="Hotkey" Width="360"/>
           <TextBlock Style="{StaticResource FieldLabel}" Text="Idioma"/><ComboBox x:Name="InterfaceLanguage" Width="360"><ComboBoxItem Content="pt-BR"/></ComboBox>
+          <Button Content="Gerenciar modos / workspaces" Click="Workspaces_Click" Width="230" Margin="0,18,0,0"/>
           <TextBlock Text="Algumas mudanças entram em vigor na próxima inicialização." Foreground="{StaticResource TextMuted}" Margin="0,18,0,0"/>
         </StackPanel></ScrollViewer>
       </TabItem>

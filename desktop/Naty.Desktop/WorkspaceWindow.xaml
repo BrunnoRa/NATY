@@ -1,0 +1,33 @@
+<Window x:Class="Naty.Desktop.WorkspaceWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Modos da NATY" Width="760" Height="590" MinWidth="680" MinHeight="520"
+        Background="{StaticResource BgMain}" WindowStartupLocation="CenterOwner">
+  <Grid Margin="20">
+    <Grid.ColumnDefinitions><ColumnDefinition Width="220"/><ColumnDefinition Width="18"/><ColumnDefinition/></Grid.ColumnDefinitions>
+    <Grid.RowDefinitions><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+    <Border Style="{StaticResource Card}">
+      <DockPanel><TextBlock DockPanel.Dock="Top" Text="MODOS" FontSize="20" Margin="0,0,0,12"/>
+        <ListBox x:Name="WorkspaceList" SelectionChanged="WorkspaceList_SelectionChanged" DisplayMemberPath="Name"
+                 Background="{StaticResource BgPanel}" Foreground="{StaticResource TextPrimary}" BorderThickness="0"/>
+      </DockPanel>
+    </Border>
+    <Border Grid.Column="2" Style="{StaticResource Card}">
+      <ScrollViewer><StackPanel>
+        <TextBlock Text="Nome" Foreground="{StaticResource TextSecondary}"/><TextBox x:Name="WorkspaceName" Margin="0,4,0,10"/>
+        <TextBlock Text="Aliases (separados por vírgula)" Foreground="{StaticResource TextSecondary}"/><TextBox x:Name="Aliases" Margin="0,4,0,10"/>
+        <TextBlock Text="Apps permitidos" Foreground="{StaticResource TextSecondary}"/><TextBox x:Name="Apps" Margin="0,4,0,2"/>
+        <TextBlock Text="vscode, obsidian, spotify, youtube, chatgpt, gmail" FontSize="11" Foreground="{StaticResource TextMuted}" Margin="0,0,0,10"/>
+        <TextBlock Text="Atalhos web (uma URL http/https por linha)" Foreground="{StaticResource TextSecondary}"/><TextBox x:Name="Urls" AcceptsReturn="True" Height="85" Margin="0,4,0,10"/>
+        <TextBlock Text="Timer de foco (1–240 minutos, opcional)" Foreground="{StaticResource TextSecondary}"/><TextBox x:Name="FocusMinutes" Margin="0,4,0,10"/>
+        <CheckBox x:Name="Enabled" Content="Modo habilitado" Foreground="{StaticResource TextPrimary}" IsChecked="True"/>
+        <TextBlock x:Name="Status" Foreground="{StaticResource TextSecondary}" TextWrapping="Wrap" Margin="0,14,0,0"/>
+      </StackPanel></ScrollViewer>
+    </Border>
+    <DockPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0">
+      <Button Content="Novo" Click="New_Click" Margin="0,0,8,0"/><Button Content="Salvar" Click="Save_Click" Margin="0,0,8,0"/>
+      <Button Content="Ativar" Click="Activate_Click" Background="#123B5A"/>
+      <Button Content="Fechar" Click="Close_Click" HorizontalAlignment="Right"/>
+    </DockPanel>
+  </Grid>
+</Window>

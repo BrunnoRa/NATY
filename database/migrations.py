@@ -105,6 +105,16 @@ MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_activity_events_time ON activity_events(timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_activity_events_type_time ON activity_events(event_type, timestamp DESC);
     """),
+    (6, """
+    CREATE TABLE IF NOT EXISTS workspaces(
+      id INTEGER PRIMARY KEY, name TEXT NOT NULL COLLATE NOCASE UNIQUE,
+      aliases_json TEXT NOT NULL DEFAULT '[]', actions_json TEXT NOT NULL DEFAULT '[]',
+      project_id INTEGER, focus_minutes INTEGER, enabled INTEGER NOT NULL DEFAULT 1,
+      active INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL);
+    CREATE INDEX IF NOT EXISTS idx_workspaces_enabled ON workspaces(enabled,name);
+    """),
 ]
 
 

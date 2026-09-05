@@ -32,6 +32,8 @@ class AgentRouter:
             intents.CREATE_AUTOMATION: ("context", "automation", "Automação"),
             intents.GMAIL_SEARCH: ("context", "gmail", "Gmail"),
             intents.GOOGLE_CALENDAR_UPCOMING: ("context", "today", "Agenda"),
+            intents.WORKSPACE_LIST: ("context", "workspace", "Modos"),
+            intents.WORKSPACE_ACTIVATE: ("context", "workspace", "Modo ativo"),
         }
         if intent_name in panels:
             mode, panel, title = panels[intent_name]

@@ -14,6 +14,7 @@ class WindowsActionsTool:
         "youtube": "https://www.youtube.com/",
         "chatgpt": "https://chatgpt.com/",
         "gmail": "https://mail.google.com/",
+        "vscode": "vscode://",
     }
     MEDIA_KEYS = {"next": 0xB0, "previous": 0xB1, "pause": 0xB3, "play": 0xB3, "volume_up": 0xAF, "volume_down": 0xAE}
 

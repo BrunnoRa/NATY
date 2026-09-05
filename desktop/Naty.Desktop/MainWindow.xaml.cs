@@ -263,6 +263,29 @@ public partial class MainWindow : Window
                 AddObjectArray(data, "today", "title", "detail", "Hoje");
                 AddObjectArray(data, "attention", "title", "detail", "Atenção");
             }
+            else if (panel == "workspace")
+            {
+                if (data.TryGetProperty("workspaces", out _))
+                {
+                    foreach (var workspace in data.GetProperty("workspaces").EnumerateArray())
+                    {
+                        var name = workspace.TryGetProperty("name", out var workspaceName) ? workspaceName.GetString() ?? "Modo" : "Modo";
+                        var focus = workspace.TryGetProperty("focus_minutes", out var minutes) && minutes.ValueKind == JsonValueKind.Number
+                            ? $"Foco: {minutes.GetInt32()} min" : "Sem timer";
+                        _viewModel.ContextItems.Add(new ContextItem(name, focus));
+                    }
+                }
+                else
+                {
+                    var name = data.TryGetProperty("name", out var workspaceName) ? workspaceName.GetString() ?? "Modo" : "Modo";
+                    var detail = data.TryGetProperty("active", out var active) && active.GetBoolean() ? "Ativo" : "Configurado";
+                    _viewModel.ContextItems.Add(new ContextItem(name, detail));
+                    if (data.TryGetProperty("completed", out var completed) && completed.ValueKind == JsonValueKind.Array)
+                        foreach (var action in completed.EnumerateArray())
+                            if (action.ValueKind == JsonValueKind.String)
+                                _viewModel.ContextItems.Add(new ContextItem(action.GetString() ?? "Ação", "Concluída"));
+                }
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {

@@ -126,6 +126,7 @@ public partial class SettingsWindow : Window
     private void OpenConflicts_Click(object sender, RoutedEventArgs e) => OpenPath(_conflictsFolder);
     private void OpenMemory_Click(object sender, RoutedEventArgs e) => OpenPath(_memoryFolder);
     private void OpenEvolution_Click(object sender, RoutedEventArgs e) => OpenPath(_evolutionPath);
+    private void Workspaces_Click(object sender, RoutedEventArgs e) => new WorkspaceWindow(_core) { Owner = this }.ShowDialog();
     private static void OpenPath(string path) { if (!string.IsNullOrWhiteSpace(path) && (Directory.Exists(path) || File.Exists(path))) Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
     private void Cancel_Click(object sender, RoutedEventArgs e) => Close();
 }

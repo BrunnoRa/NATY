@@ -27,6 +27,27 @@ class RuleParser:
         if not clean: return Intent(intents.UNKNOWN, raw_text=raw)
         if re.search(r"\b(?:me (?:da|de) (?:meu )?briefing|briefing do dia|como esta meu dia)\b", plain) or re.fullmatch(r"bom dia naty[!. ]*", plain):
             return Intent(intents.DAILY_BRIEFING, raw_text=raw)
+        workspace_create = re.search(r"\b(?:cria|crie) (?:um )?modo(?: chamado)? ([\wÀ-ÿ -]+?)[.!]?$", clean, re.I)
+        if workspace_create:
+            return Intent(intents.WORKSPACE_CREATE, {"name": workspace_create.group(1).strip()}, raw_text=raw)
+        workspace_rule = re.search(r"\bquando eu disser modo ([\wÀ-ÿ -]+?),?\s*(?:abre|abra)\s+(.+)$", clean, re.I)
+        if workspace_rule:
+            app_words = _plain(workspace_rule.group(2))
+            apps = [app for app in ("vscode", "obsidian", "spotify", "youtube", "chatgpt", "gmail")
+                    if app in app_words.replace("visual studio code", "vscode").replace("vs code", "vscode")]
+            return Intent(intents.WORKSPACE_CONFIGURE, {"name": workspace_rule.group(1).strip(), "apps": apps}, raw_text=raw)
+        if re.search(r"\b(?:quais|lista|mostra).*(?:modos|workspaces)\b", plain):
+            return Intent(intents.WORKSPACE_LIST, raw_text=raw)
+        workspace_end = re.search(r"\b(?:encerra|encerre|finaliza|finalize) (?:o )?modo(?: ([\wÀ-ÿ -]+))?", clean, re.I)
+        if workspace_end:
+            return Intent(intents.WORKSPACE_END, {"name": (workspace_end.group(1) or "").strip()}, raw_text=raw)
+        workspace_activate = re.search(r"\b(?:ativa|ative|inicia|inicie) (?:o )?modo ([\wÀ-ÿ -]+?)[.!]?$", clean, re.I)
+        if not workspace_activate:
+            workspace_activate = re.fullmatch(r"(?:naty[, ]+)?modo ([\wÀ-ÿ -]+?)[.!]?", clean, re.I)
+        if workspace_activate:
+            return Intent(intents.WORKSPACE_ACTIVATE, {"name": workspace_activate.group(1).strip()}, raw_text=raw)
+        if re.search(r"\b(?:vou estudar|hora de estudar)\b", plain):
+            return Intent(intents.WORKSPACE_ACTIVATE, {"name": "estudo"}, raw_text=raw)
         if re.fullmatch(r"(?:oi|ola|bom dia|boa tarde|boa noite)(?:\s+naty)?[!. ]*", plain):
             return Intent(intents.CHAT, {"kind": "greeting"}, raw_text=raw)
         if re.search(r"\b(que horas sao|qual (?:e )?a hora|hora agora)\b", plain):
