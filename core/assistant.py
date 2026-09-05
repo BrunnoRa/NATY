@@ -22,6 +22,7 @@ from database.repositories.projects import ProjectRepository
 from database.repositories.reminders import ReminderRepository
 from database.repositories.tasks import TaskRepository
 from database.repositories.automations import AutomationRepository
+from database.repositories.temporal_memory import TemporalMemoryRepository
 from planner.planner import Planner
 from conversation.engine import ConversationEngine
 from knowledge.graph import KnowledgeGraph
@@ -48,11 +49,13 @@ from connectors.google.calendar import GoogleCalendarConnector
 from connectors.registry import ConnectorRegistry
 from tools.google_workspace import GoogleWorkspaceTool
 from tools.system_status import SystemStatusTool
+from tools.temporal_memory import TemporalMemoryTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
 from sync.models import DeviceIdentity
 from diagnostics.service import DiagnosticService
+from uuid import uuid4
 
 
 def setup_logging(settings: Settings) -> logging.Logger:
@@ -75,6 +78,9 @@ class NatyAssistant:
         task_repo, list_repo = TaskRepository(self.db), ListRepository(self.db)
         project_repo, reminder_repo = ProjectRepository(self.db), ReminderRepository(self.db)
         automation_repo = AutomationRepository(self.db)
+        self.temporal_repo = TemporalMemoryRepository(self.db)
+        self.session_id = uuid4().hex
+        self.temporal_repo.prune()
         self.reminder_repo, self.memory_repo = reminder_repo, MemoryRepository(self.db)
         self.task_repo, self.list_repo, self.project_repo, self.automation_repo = task_repo, list_repo, project_repo, automation_repo
         self.notifications: list[dict[str, str]] = []
@@ -104,7 +110,8 @@ class NatyAssistant:
         self.tool_router = ToolRouter(tasks=task_tool, lists=list_tool, reminders=reminder_tool,
             projects=project_tool, notes=notes_tool, calendar=CalendarTool(self.db), planner=Planner(task_repo), research=research_tool,
             context=self.context, google=google_tool, automations=AutomationsTool(automation_repo), windows=WindowsActionsTool(),
-            planning=PlanningTool(self.db, task_tool, reminder_repo), system_status=SystemStatusTool())
+            planning=PlanningTool(self.db, task_tool, reminder_repo), system_status=SystemStatusTool(),
+            temporal_memory=TemporalMemoryTool(self.temporal_repo))
         self.ai = LlamaCppProvider(self.settings.ai_model_path, self.settings.ai_threads, self.settings.ai_context_size,
             self.settings.ai_idle_unload_seconds, self.settings.ai_max_ram_mb, self.settings.ai_min_available_ram_mb) if self.settings.ai_enabled else NoAIProvider()
         self.obsidian_index = ObsidianIndex(
@@ -153,7 +160,9 @@ class NatyAssistant:
                 report = self.diagnostics.run()
                 return ToolResult(True, report["summary"], report, type="diagnostics")
             if self.learning.pending and plain in {"sim", "confirmo", "pode", "pode fazer"}:
-                return self.learning.confirm()
+                result = self.learning.confirm()
+                self._record_temporal_result(result)
+                return result
             if self.learning.pending and plain in {"não", "nao", "cancelar", "cancela"}:
                 return self.learning.cancel()
             import_match = re.search(r"(?is)^(?:importar resultado externo|resultado do chatgpt)\s*[:\n]\s*(.+)$", text.strip())
@@ -176,6 +185,7 @@ class NatyAssistant:
                 self.context.set_entity(result.entity_type, result.entity_id, label)
             response = self.formatter.format(result)
             result.message = response
+            self._record_temporal_result(result)
             self.context.remember_turn(text, response)
             self.db.execute("INSERT INTO activity_history(action, summary) VALUES ('command', ?)", (route_name,))
             return result
@@ -233,6 +243,23 @@ class NatyAssistant:
             payload["list_name"] = list_row["name"] if list_row else "Lista de Compras"
             self.sync.record("shopping_item", result.data["id"], "complete", payload)
 
+    def _record_temporal_result(self, result: ToolResult) -> None:
+        if not result.ok or result.type == "temporal_context":
+            return
+        mapping = {
+            "create_task": "TASK", "task_completed": "TASK", "complete_last": "TASK",
+            "update_last": "TASK", "postpone_last": "TASK", "research": "RESEARCH",
+            "deep_research": "RESEARCH", "create_project": "PROJECT",
+            "automation_created": "AUTOMATION", "learning_saved": "DECISION",
+        }
+        event_type = mapping.get(result.type)
+        if not event_type:
+            return
+        project_id = result.entity_id if result.entity_type == "project" else None
+        metadata = {"result_type": result.type}
+        self.temporal_repo.add(event_type, result.message, project_id=project_id, source="skill",
+                               metadata=metadata, session_id=self.session_id)
+
     def _refresh_synced_indexes(self) -> None:
         try:
             if self.obsidian_index:
@@ -243,6 +270,10 @@ class NatyAssistant:
             self.logger.exception("Falha ao atualizar índices após sincronização")
 
     def close(self) -> None:
+        try:
+            self.temporal_repo.summarize_session(self.session_id)
+        except Exception:
+            self.logger.exception("Falha ao resumir sessão temporal")
         if self.sync:
             self.sync.stop()
         if self.scheduler:

@@ -253,6 +253,10 @@ public partial class MainWindow : Window
                 if (data.TryGetProperty("battery", out var battery) && battery.TryGetProperty("percent", out _)) AddMetric(battery, "Bateria", "percent", "%");
                 AddObjectArray(data, "top_processes", "name", "ram_mib", "Processo");
             }
+            else if (panel == "timeline")
+            {
+                AddObjectArray(data, "events", "summary", "timestamp", "Atividade");
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {

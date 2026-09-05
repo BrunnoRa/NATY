@@ -96,6 +96,15 @@ MIGRATIONS: list[tuple[int, str]] = [
       created_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'open');
     CREATE INDEX IF NOT EXISTS idx_sync_conflicts_status ON sync_conflicts(status, created_at);
     """),
+    (5, """
+    CREATE TABLE IF NOT EXISTS activity_events(
+      id INTEGER PRIMARY KEY, timestamp TEXT NOT NULL, event_type TEXT NOT NULL,
+      summary TEXT NOT NULL, project_id INTEGER, source TEXT NOT NULL DEFAULT 'naty',
+      metadata_json TEXT NOT NULL DEFAULT '{}', session_id TEXT,
+      FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL);
+    CREATE INDEX IF NOT EXISTS idx_activity_events_time ON activity_events(timestamp DESC);
+    CREATE INDEX IF NOT EXISTS idx_activity_events_type_time ON activity_events(event_type, timestamp DESC);
+    """),
 ]
 
 

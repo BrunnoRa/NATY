@@ -34,6 +34,7 @@ class IntentRouter:
             RequestType.AUTOMATION: {intents.CREATE_AUTOMATION},
             RequestType.DELEGATE: {intents.DELEGATE},
             RequestType.SYSTEM: {intents.SYSTEM_STATUS, intents.SYSTEM_DIAGNOSIS},
+            RequestType.CONTEXT: {intents.TEMPORAL_RECALL},
         }
         for kind, names in groups.items():
             if name in names:

@@ -39,6 +39,16 @@ class RuleParser:
             return Intent(intents.SYSTEM_STATUS, {"focus": "memory"}, raw_text=raw)
         if re.search(r"\bcomo (?:esta|vai).*(?:meu )?(?:pc|computador)\b|\bestado (?:do|deste) (?:pc|computador)\b", plain):
             return Intent(intents.SYSTEM_STATUS, {"focus": "general"}, raw_text=raw)
+        if re.search(r"\b(?:onde paramos|onde eu parei|retoma o contexto)\b", plain):
+            return Intent(intents.TEMPORAL_RECALL, {"kind": "where_stopped"}, raw_text=raw)
+        if re.search(r"\b(?:o que (?:eu )?fiz|minha atividade) hoje\b", plain):
+            return Intent(intents.TEMPORAL_RECALL, {"kind": "today"}, raw_text=raw)
+        if re.search(r"\b(?:o que (?:eu )?fiz|minha atividade) ontem\b|\bo que estava fazendo ontem\b", plain):
+            return Intent(intents.TEMPORAL_RECALL, {"kind": "yesterday"}, raw_text=raw)
+        if re.search(r"\b(?:qual foi )?minha ultima pesquisa\b", plain):
+            return Intent(intents.TEMPORAL_RECALL, {"kind": "last_research"}, raw_text=raw)
+        if re.search(r"\b(?:qual foi )?minha ultima decisao(?: sobre a naty)?\b", plain):
+            return Intent(intents.TEMPORAL_RECALL, {"kind": "last_decision"}, raw_text=raw)
         if plain in {"sim", "confirmo", "pode", "pode fazer"}: return Intent(intents.CONFIRM, raw_text=raw)
         if plain in {"nao", "cancelar", "cancela"}: return Intent(intents.CANCEL, raw_text=raw)
         if re.search(r"\b(ajuda|comandos|o que voce faz)\b", plain): return Intent(intents.HELP, raw_text=raw)
