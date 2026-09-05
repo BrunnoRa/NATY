@@ -44,9 +44,26 @@ class CoreRequestHandler:
         except Exception:
             return False
 
-    def _graph(self) -> dict:
+    def _graph(self, active_terms=()) -> dict:
         nodes, edges = self.assistant.knowledge_graph.snapshot(limit=24)
+        terms = {str(term).casefold() for term in active_terms if str(term).strip()}
+        for node in nodes:
+            node.active = any(term in node.title.casefold() or node.title.casefold() in term for term in terms)
         return {"nodes": [asdict(node) for node in nodes], "edges": [asdict(edge) for edge in edges]}
+
+    @staticmethod
+    def _active_terms(data) -> list[str]:
+        if not isinstance(data, dict):
+            return []
+        terms = []
+        for key in ("title", "name", "query", "text"):
+            if data.get(key):
+                terms.append(str(data[key]))
+        for collection in ("notes", "tasks", "items"):
+            for item in data.get(collection, []) if isinstance(data.get(collection), list) else []:
+                if isinstance(item, dict):
+                    terms.extend(str(item[key]) for key in ("title", "name", "text") if item.get(key))
+        return terms
 
     def _dashboard(self) -> dict:
         return {
@@ -58,6 +75,7 @@ class CoreRequestHandler:
             "graph": self._graph(),
             "state": self.assistant.state.value,
             "time": datetime.now().astimezone().isoformat(timespec="seconds"),
+            "notifications": self.assistant.drain_notifications() if hasattr(self.assistant, "drain_notifications") else [],
         }
 
     def handle(self, message: dict) -> dict:
@@ -74,8 +92,18 @@ class CoreRequestHandler:
             text = str(message["payload"].get("text", "")).strip()
             if not text or len(text) > 8000:
                 raise ProtocolError("Texto vazio ou acima de 8.000 caracteres.")
-            answer = self.assistant.handle(text)
-            return response(message, "assistant_response", {"text": answer, "state": AppState.IDLE.value, "graph": self._graph()})
+            if hasattr(self.assistant, "handle_result"):
+                result = self.assistant.handle_result(text)
+                payload = result.payload()
+                display_message = result.message.split("\n\nFontes:\n", 1)[0]
+                payload["message"] = display_message
+                payload["text"] = display_message
+            else:
+                answer = self.assistant.handle(text)
+                payload = {"text": answer, "success": True, "type": "message", "data": None, "sources": [],
+                           "ui": {"mode": "brain", "panel": "none", "title": ""}, "error": None}
+            payload.update({"state": AppState.IDLE.value, "graph": self._graph(self._active_terms(payload.get("data")))})
+            return response(message, "assistant_response", payload)
         if type_ == "shutdown":
             self.shutdown_requested = True
             return response(message, "shutdown_ack", {"clean": True})

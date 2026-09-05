@@ -57,9 +57,16 @@ class ResearchSession:
                 claim.confidence = max(claim.confidence, 0.75)
 
     def payload(self) -> dict:
+        sources = [{"title": item.title, "url": item.url, "domain": urlparse(item.url).netloc,
+                    "retrieved_at": item.observed_at} for item in self.items]
+        confidence = sum(claim.confidence for claim in self.claims) / len(self.claims) if self.claims else 0.0
         return {
             "query": self.query,
             "created_at": self.created_at,
+            "summary": " ".join((item.relevant_text or item.snippet).strip()[:240] for item in self.items[:3]),
+            "facts": [claim.text for claim in self.claims],
+            "sources": sources,
+            "confidence": round(confidence, 2),
             "items": [asdict(item) for item in self.items],
             "claims": [asdict(claim) for claim in self.claims],
             "comparison": self.comparison,

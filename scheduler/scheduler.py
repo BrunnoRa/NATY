@@ -9,9 +9,10 @@ from database.repositories.tasks import TaskRepository
 
 
 class Scheduler:
-    def __init__(self, reminders: ReminderRepository, tasks: TaskRepository, notify: Callable[[str, str], None], interval: int = 30, settings=None):
+    def __init__(self, reminders: ReminderRepository, tasks: TaskRepository, notify: Callable[[str, str], None], interval: int = 30, settings=None, automations=None):
         self.reminders, self.tasks, self.notify = reminders, tasks, notify
         self.settings = settings
+        self.automations = automations
         self.interval = max(15, interval)
         self._stop = threading.Event(); self._thread: threading.Thread | None = None
 
@@ -28,6 +29,12 @@ class Scheduler:
         for reminder in self.reminders.due(now.isoformat(timespec="seconds")):
             self.notify("Lembrete da Naty", reminder["text"])
             self.reminders.mark_triggered(reminder["id"])
+        if self.automations:
+            for automation in self.automations.due(now.isoformat(timespec="minutes")):
+                payload = automation.get("payload", {})
+                if automation["action_type"] in {"notify", "reminder"}:
+                    self.notify("Automação da Naty", payload.get("text") or automation["name"])
+                self.automations.mark_run(automation["id"], automation["trigger_value"], now.isoformat(timespec="minutes"))
         proactivity = self.settings is None or self.settings.proactivity_enabled
         followup = self.settings is None or self.settings.overdue_followup
         if proactivity and followup:

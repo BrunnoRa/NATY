@@ -40,7 +40,7 @@ public sealed class KnowledgeGraphControl : FrameworkElement
     {
         base.OnRender(dc);
         var center = new WpfPoint(ActualWidth / 2, ActualHeight / 2);
-        var nodes = _snapshot.Nodes.Where(n => n.Id != "naty").Take(14).ToList();
+        var nodes = _snapshot.Nodes.Where(n => n.Id != "naty").Take(6).ToList();
         var positions = new Dictionary<string, WpfPoint> { ["naty"] = center };
         var radius = Math.Max(80, Math.Min(ActualWidth, ActualHeight) * .34);
         for (var i = 0; i < nodes.Count; i++)
@@ -53,7 +53,14 @@ public sealed class KnowledgeGraphControl : FrameworkElement
         foreach (var edge in _snapshot.Edges)
             if (positions.TryGetValue(edge.Source, out var a) && positions.TryGetValue(edge.Target, out var b)) dc.DrawLine(edgePen, a, b);
         foreach (var node in nodes)
-            DrawNode(dc, positions[node.Id], node.Title, NodeColor(node.Type), 5 + Math.Min(5, node.Importance));
+        {
+            var point = positions[node.Id];
+            var color = NodeColor(node.Type);
+            if (node.Active)
+                dc.DrawEllipse(null, new WpfPen(new SolidColorBrush(WpfColor.FromArgb(150, color.R, color.G, color.B)), 2.2),
+                               point, 15, 15);
+            DrawNode(dc, point, node.Title, color, 5 + Math.Min(5, node.Importance));
+        }
         var pulse = _timer.IsEnabled ? 4 + Math.Sin(_phase) * 2 : 4;
         dc.DrawEllipse(null, new WpfPen(new SolidColorBrush(WpfColor.FromArgb(70, 38, 217, 255)), 2), center, 34 + pulse, 34 + pulse);
         DrawNode(dc, center, "NATY", WpfColor.FromRgb(24, 191, 255), 25);

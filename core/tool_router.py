@@ -6,11 +6,13 @@ from nlu import intents
 
 
 class ToolRouter:
-    def __init__(self, *, tasks, lists, reminders, projects, notes, calendar, planner, research, context: SessionContext, google=None):
+    def __init__(self, *, tasks, lists, reminders, projects, notes, calendar, planner, research, context: SessionContext,
+                 google=None, automations=None, windows=None, planning=None, knowledge=None):
         self.tasks, self.lists, self.reminders = tasks, lists, reminders
         self.projects, self.notes, self.calendar, self.planner, self.research = projects, notes, calendar, planner, research
         self.context = context
         self.google = google
+        self.automations, self.windows, self.planning, self.knowledge = automations, windows, planning, knowledge
         self.pending_confirmation: tuple[str, dict] | None = None
 
     def execute(self, intent: Intent) -> ToolResult:
@@ -45,6 +47,7 @@ class ToolRouter:
         if name == intents.GOOGLE_CALENDAR_UPCOMING and self.google: return self.google.upcoming()
         if name == intents.CREATE_TASK: return self.tasks.create(**e)
         if name == intents.LIST_TASKS: return self.tasks.list_pending()
+        if name == intents.COMPLETE_TASK: return self.tasks.complete_named(e["query"])
         if name == intents.COMPLETE_LAST:
             if not last or last.type != "task": return ToolResult(False, "Qual tarefa você concluiu?")
             return self.tasks.complete(last.id)
@@ -60,7 +63,7 @@ class ToolRouter:
         if name == intents.CREATE_APPOINTMENT: return self.calendar.create(**e)
         if name == intents.LIST_APPOINTMENTS: return self.calendar.today()
         if name == intents.CREATE_LIST: return self.lists.create(e["name"])
-        if name == intents.ADD_LIST_ITEMS: return self.lists.add(e.get("list_name"), e["items"], self.context.last_list_id)
+        if name == intents.ADD_LIST_ITEMS: return self.lists.add(e.get("list_name") or "Lista de Compras", e["items"], self.context.last_list_id)
         if name == intents.SHOW_LIST: return self.lists.show(e.get("list_name"), self.context.last_list_id, e.get("unchecked_only", False))
         if name == intents.CHECK_LIST_ITEM: return self.lists.check(e.get("list_name"), e["item"], self.context.last_list_id)
         if name == intents.REMOVE_LIST_ITEM: return self.lists.remove(e.get("list_name"), e["item"], self.context.last_list_id)
@@ -75,6 +78,17 @@ class ToolRouter:
             return self.notes.create("Nota da Naty", e["content"], project_id)
         if name == intents.PLAN_TIME: return self.planner.suggest(e["minutes"])
         if name == intents.PLAN_NOW: return self.planner.suggest()
+        if name == intents.SHOW_DAY and self.planning: return self.planning.show_day(e.get("day", "today"))
+        if name == intents.NEXT_TASK and self.planning: return self.planning.next_task()
+        if name == intents.TIME_QUERY:
+            from datetime import datetime
+            now = datetime.now().astimezone()
+            return ToolResult(True, f"Agora são {now:%H:%M}.", {"time": now.isoformat(timespec="seconds")}, type="current_time")
+        if name == intents.OBSIDIAN_QUERY and self.knowledge: return self.knowledge.query(e.get("query", ""))
+        if name == intents.CREATE_AUTOMATION and self.automations: return self.automations.create(**e)
+        if name == intents.OPEN_APP and self.windows: return self.windows.open_app(e["app"])
+        if name == intents.MEDIA_CONTROL and self.windows: return self.windows.media(e["action"])
+        if name == intents.DELEGATE and self.windows: return self.windows.delegate(e.get("query", intent.raw_text))
         if name in {intents.RESEARCH, intents.COMPARE}: return self.research.search(e["query"], compare=name == intents.COMPARE, read_pages=name == intents.COMPARE)
         if name == intents.SAVE_RESEARCH: return self.research.save_last_to_obsidian()
         if name == intents.OPEN_RESEARCH_BROWSER: return self.research.open_last_in_browser()

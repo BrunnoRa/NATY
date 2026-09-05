@@ -14,6 +14,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _input = "";
     private string _ram = "—";
     private string _cpu = "—";
+    private string _contextTitle = "";
+    private string _contextSummary = "";
 
     public string Connection { get => _connection; set => Set(ref _connection, value); }
     public string State { get => _state; set => Set(ref _state, value); }
@@ -22,8 +24,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string Input { get => _input; set => Set(ref _input, value); }
     public string Ram { get => _ram; set => Set(ref _ram, value); }
     public string Cpu { get => _cpu; set => Set(ref _cpu, value); }
+    public string ContextTitle { get => _contextTitle; set => Set(ref _contextTitle, value); }
+    public string ContextSummary { get => _contextSummary; set => Set(ref _contextSummary, value); }
     public ObservableCollection<ProviderStatus> Providers { get; } = [];
     public ObservableCollection<TaskItem> Tasks { get; } = [];
+    public ObservableCollection<ContextItem> ContextItems { get; } = [];
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)

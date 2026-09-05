@@ -58,9 +58,19 @@ class ResearchTool:
                 )
             if not items: return ToolResult(True, "Não encontrei resultados para essa pesquisa.", payload)
             lines = [f"{idx}. {item.title}" + (f" — R$ {item.price:.2f} (observado em {item.observed_at})" if item.price is not None else "") for idx, item in enumerate(items, 1)]
-            message = f"Encontrei {len(items)} resultado(s):\n" + "\n".join(lines)
-            sources = [{"title": i.title, "url": i.url} for i in items]
-            return ToolResult(True, message, payload, sources=sources)
+            if compare:
+                differences = "\n".join(f"- {item['title']}: {item['fact'][:220]}" for item in comparison.get("differences", [])[:4])
+                message = (
+                    f"Resumo\n{comparison.get('summary', '')}\n\n"
+                    f"Diferenças\n{differences or 'As fontes não trouxeram diferenças verificáveis.'}\n\n"
+                    "Prós/contras\nSomente afirmações explícitas das fontes foram consideradas.\n\n"
+                    f"Conclusão\n{comparison.get('conclusion', '')}"
+                )
+            else:
+                message = f"Encontrei {len(items)} resultado(s):\n" + "\n".join(lines)
+            sources = [{"title": i.title, "url": i.url, "domain": urlparse(i.url).netloc,
+                        "retrieved_at": i.observed_at} for i in items]
+            return ToolResult(True, message, payload, sources=sources, type="deep_research" if compare else "research")
         except Exception as exc:
             return ToolResult(False, f"A pesquisa falhou ({type(exc).__name__}). Posso abrir a busca no navegador; o restante da Naty continua disponível.", {"browser_query": query})
 

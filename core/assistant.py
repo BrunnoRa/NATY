@@ -20,6 +20,7 @@ from database.repositories.memories import MemoryRepository
 from database.repositories.projects import ProjectRepository
 from database.repositories.reminders import ReminderRepository
 from database.repositories.tasks import TaskRepository
+from database.repositories.automations import AutomationRepository
 from planner.planner import Planner
 from conversation.engine import ConversationEngine
 from knowledge.graph import KnowledgeGraph
@@ -34,6 +35,11 @@ from tools.projects import ProjectsTool
 from tools.reminders import RemindersTool
 from tools.research import ResearchTool
 from tools.tasks import TasksTool
+from tools.automations import AutomationsTool
+from tools.knowledge_query import KnowledgeQueryTool
+from tools.planning import PlanningTool
+from tools.windows_actions import WindowsActionsTool
+from scheduler.scheduler import Scheduler
 from research.perplexity_provider import PerplexityProvider
 from connectors.google.auth import GoogleAuth
 from connectors.google.gmail import GmailConnector
@@ -61,8 +67,11 @@ class NatyAssistant:
         self.context, self.events = SessionContext(), EventBus()
         task_repo, list_repo = TaskRepository(self.db), ListRepository(self.db)
         project_repo, reminder_repo = ProjectRepository(self.db), ReminderRepository(self.db)
+        automation_repo = AutomationRepository(self.db)
         self.reminder_repo, self.memory_repo = reminder_repo, MemoryRepository(self.db)
-        self.task_repo, self.list_repo, self.project_repo = task_repo, list_repo, project_repo
+        self.task_repo, self.list_repo, self.project_repo, self.automation_repo = task_repo, list_repo, project_repo, automation_repo
+        self.notifications: list[dict[str, str]] = []
+        self.scheduler: Scheduler | None = None
         managed_obsidian = str(self.settings.managed_obsidian_path or "")
         self.obsidian = ObsidianTool(
             self.settings.obsidian_enabled, self.settings.obsidian_vault_path, list_repo, managed_obsidian
@@ -85,7 +94,9 @@ class NatyAssistant:
             obsidian=self.obsidian, enabled=self.settings.research_enabled)
         self.intent_router, self.formatter = IntentRouter(), ResponseFormatter()
         self.tool_router = ToolRouter(tasks=task_tool, lists=list_tool, reminders=reminder_tool,
-            projects=project_tool, notes=notes_tool, calendar=CalendarTool(self.db), planner=Planner(task_repo), research=research_tool, context=self.context, google=google_tool)
+            projects=project_tool, notes=notes_tool, calendar=CalendarTool(self.db), planner=Planner(task_repo), research=research_tool,
+            context=self.context, google=google_tool, automations=AutomationsTool(automation_repo), windows=WindowsActionsTool(),
+            planning=PlanningTool(self.db, task_tool, reminder_repo))
         self.ai = LlamaCppProvider(self.settings.ai_model_path, self.settings.ai_threads, self.settings.ai_context_size,
             self.settings.ai_idle_unload_seconds, self.settings.ai_max_ram_mb, self.settings.ai_min_available_ram_mb) if self.settings.ai_enabled else NoAIProvider()
         self.obsidian_index = ObsidianIndex(
@@ -99,13 +110,14 @@ class NatyAssistant:
         except Exception: self.logger.exception("Falha ao gerar grafo")
         retriever = ObsidianContextRetriever(self.obsidian_index, project_repo, task_repo,
             self.settings.obsidian_max_notes, self.settings.obsidian_max_chars)
+        self.tool_router.knowledge = KnowledgeQueryTool(retriever)
         self.conversation = ConversationEngine(context=self.context, tasks=task_repo, lists=list_repo,
             memories=self.memory_repo, planner=Planner(task_repo), retriever=retriever, ai=self.ai)
         self.skills = build_registry(self.tool_router)
         self.agent_router = AgentRouter(self.intent_router, self.skills, self.conversation, self.events)
         self.state = AppState.IDLE
 
-    def handle(self, text: str) -> str:
+    def handle_result(self, text: str) -> ToolResult:
         self.state = AppState.PROCESSING; self.events.publish("state", self.state)
         try:
             result, route_name = self.agent_router.handle(text)
@@ -113,17 +125,38 @@ class NatyAssistant:
                 label = result.data.get("title", result.data.get("name", "")) if isinstance(result.data, dict) else ""
                 self.context.set_entity(result.entity_type, result.entity_id, label)
             response = self.formatter.format(result)
+            result.message = response
             self.context.remember_turn(text, response)
             self.db.execute("INSERT INTO activity_history(action, summary) VALUES ('command', ?)", (route_name,))
-            return response
+            return result
         except Exception:
             self.logger.exception("Falha ao processar comando")
             self.state = AppState.ERROR; self.events.publish("state", self.state)
-            return "Algo deu errado ao executar esse pedido. Seus dados continuam seguros; consulte o log para detalhes."
+            return ToolResult(False, "Algo deu errado ao executar esse pedido. Seus dados continuam seguros; consulte o log para detalhes.",
+                              type="internal_error", error="internal_error")
         finally:
             self.state = AppState.IDLE; self.events.publish("state", self.state)
 
+    def handle(self, text: str) -> str:
+        return self.handle_result(text).message
+
+    def start_scheduler(self) -> None:
+        if self.scheduler:
+            return
+        self.scheduler = Scheduler(self.reminder_repo, self.task_repo, self._notify,
+                                   self.settings.scheduler_interval_seconds, self.settings, self.automation_repo)
+        self.scheduler.start()
+
+    def _notify(self, title: str, message: str) -> None:
+        self.notifications.append({"title": title, "message": message})
+
+    def drain_notifications(self) -> list[dict[str, str]]:
+        current, self.notifications = self.notifications[:], []
+        return current
+
     def close(self) -> None:
+        if self.scheduler:
+            self.scheduler.stop()
         try:
             self.ai.unload()
         except AttributeError:

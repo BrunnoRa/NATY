@@ -28,7 +28,9 @@ class DDGSProvider(SearchProvider):
         observed_at = datetime.now().astimezone().isoformat(timespec="seconds")
         for row in results or []:
             url = row.get("href") or row.get("url") or ""
-            if not url: continue
+            parsed = urlparse(url)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                continue
             items.append(ResearchItem(
                 title=row.get("title") or url,
                 url=url,

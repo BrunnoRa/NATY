@@ -120,7 +120,7 @@ public sealed class CoreClient : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (IsConnected)
+        if (_coreProcess is { HasExited: false } && IsConnected)
         {
             try { await RequestAsync("shutdown", timeoutMilliseconds: 1500); }
             catch { }

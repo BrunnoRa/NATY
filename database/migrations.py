@@ -74,6 +74,11 @@ MIGRATIONS: list[tuple[int, str]] = [
     CREATE INDEX IF NOT EXISTS idx_obsidian_documents_mtime ON obsidian_documents(mtime);
     CREATE INDEX IF NOT EXISTS idx_knowledge_edges_source ON knowledge_edges(source);
     """),
+    (3, """
+    ALTER TABLE automation_rules ADD COLUMN payload_json TEXT NOT NULL DEFAULT '{}';
+    ALTER TABLE automation_rules ADD COLUMN next_run_at TEXT;
+    CREATE INDEX IF NOT EXISTS idx_automation_due ON automation_rules(enabled, next_run_at);
+    """),
 ]
 
 

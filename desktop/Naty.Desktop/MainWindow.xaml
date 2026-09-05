@@ -2,16 +2,22 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:controls="clr-namespace:Naty.Desktop.Controls"
-        Title="NATY" Width="1280" Height="820" MinWidth="1020" MinHeight="680"
+        Title="NATY" Width="1280" Height="820" MinWidth="980" MinHeight="640"
         Background="{StaticResource BgMain}" WindowStyle="None" ResizeMode="CanResizeWithGrip">
   <Grid Margin="1">
-    <Grid.RowDefinitions><RowDefinition Height="72"/><RowDefinition Height="*"/><RowDefinition Height="230"/></Grid.RowDefinitions>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="68"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="160"/>
+    </Grid.RowDefinitions>
+
     <Border Grid.Row="0" Background="{StaticResource BgPanel}" BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1"
             MouseLeftButtonDown="Header_MouseLeftButtonDown">
-      <Grid Margin="20,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Grid Margin="20,0">
+        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <Image Source="/Assets/naty_32.png" Width="34" Height="34" Margin="0,0,12,0" />
-          <StackPanel><TextBlock Text="NATY" FontSize="20" FontWeight="SemiBold"/><TextBlock Text="Agente pessoal" FontSize="11" Foreground="{StaticResource TextSecondary}"/></StackPanel>
+          <Image Source="/Assets/naty_32.png" Width="32" Height="32" Margin="0,0,12,0"/>
+          <TextBlock Text="NATY" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
         </StackPanel>
         <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,18,0">
           <Ellipse Width="7" Height="7" Fill="{StaticResource Success}" Margin="0,0,7,0"/>
@@ -19,73 +25,100 @@
           <TextBlock Text="{Binding Clock}" FontFamily="Cascadia Mono, Consolas" FontSize="15"/>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Content="—" Width="40" Margin="3" Click="Minimize_Click"/><Button Content="□" Width="40" Margin="3" Click="Maximize_Click"/><Button Content="×" Width="40" Margin="3" Click="Close_Click"/>
+          <Button Content="—" Width="40" Margin="3" Click="Minimize_Click"/>
+          <Button Content="□" Width="40" Margin="3" Click="Maximize_Click"/>
+          <Button Content="×" Width="40" Margin="3" Click="Close_Click"/>
         </StackPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" Margin="16,16,16,10"><Grid.ColumnDefinitions><ColumnDefinition Width="215"/><ColumnDefinition/><ColumnDefinition Width="300"/></Grid.ColumnDefinitions>
+    <Grid Grid.Row="1" Margin="16,16,16,10">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="150"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <Border Style="{StaticResource Card}" Margin="0,0,12,0">
-        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-          <TextBlock Text="STATUS" FontFamily="Cascadia Mono" FontSize="11" Foreground="{StaticResource Cyan}"/>
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+          <TextBlock Text="NATY" FontFamily="Cascadia Mono" FontSize="11" Foreground="{StaticResource Cyan}"/>
           <ItemsControl Grid.Row="1" ItemsSource="{Binding Providers}" Margin="0,14,0,8">
-            <ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,6"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-              <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextSecondary}"/>
-              <Ellipse Grid.Column="1" Width="8" Height="8"><Ellipse.Style><Style TargetType="Ellipse"><Setter Property="Fill" Value="{StaticResource TextMuted}"/><Style.Triggers>
-                <DataTrigger Binding="{Binding State}" Value="online"><Setter Property="Fill" Value="{StaticResource Success}"/></DataTrigger>
-                <DataTrigger Binding="{Binding State}" Value="attention"><Setter Property="Fill" Value="{StaticResource Warning}"/></DataTrigger>
-                <DataTrigger Binding="{Binding State}" Value="error"><Setter Property="Fill" Value="{StaticResource Error}"/></DataTrigger>
-              </Style.Triggers></Style></Ellipse.Style></Ellipse>
-            </Grid></DataTemplate></ItemsControl.ItemTemplate>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Grid Margin="0,7">
+                  <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                  <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextSecondary}"/>
+                  <Ellipse Grid.Column="1" Width="8" Height="8">
+                    <Ellipse.Style>
+                      <Style TargetType="Ellipse">
+                        <Setter Property="Fill" Value="{StaticResource TextMuted}"/>
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding State}" Value="online"><Setter Property="Fill" Value="{StaticResource Success}"/></DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="attention"><Setter Property="Fill" Value="{StaticResource Warning}"/></DataTrigger>
+                          <DataTrigger Binding="{Binding State}" Value="error"><Setter Property="Fill" Value="{StaticResource Error}"/></DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </Ellipse.Style>
+                  </Ellipse>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
           </ItemsControl>
           <StackPanel Grid.Row="2">
-            <Separator Background="{StaticResource Border}" Margin="0,8"/>
-            <Grid Margin="0,5"><TextBlock Text="RAM NATY" Foreground="{StaticResource TextMuted}"/><TextBlock Text="{Binding Ram}" HorizontalAlignment="Right" FontFamily="Cascadia Mono"/></Grid>
-            <Grid Margin="0,5"><TextBlock Text="CPU NATY" Foreground="{StaticResource TextMuted}"/><TextBlock Text="{Binding Cpu}" HorizontalAlignment="Right" FontFamily="Cascadia Mono"/></Grid>
+            <TextBlock Text="•••" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+            <TextBlock Text="{Binding Ram}" FontFamily="Cascadia Mono" Foreground="{StaticResource TextMuted}" HorizontalAlignment="Center"/>
           </StackPanel>
         </Grid>
       </Border>
 
       <Border Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,12,0">
-        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
-          <DockPanel><TextBlock Text="MENTE NATY" FontFamily="Cascadia Mono" FontSize="11" Foreground="{StaticResource Cyan}"/>
-            <TextBlock Text="{Binding State}" HorizontalAlignment="Right" FontFamily="Cascadia Mono" Foreground="{StaticResource TextMuted}"/></DockPanel>
-          <controls:KnowledgeGraphControl x:Name="Graph" Grid.Row="1" Margin="5,12,5,5"/>
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+          <DockPanel>
+            <TextBlock Text="MENTE NATY" FontFamily="Cascadia Mono" FontSize="11" Foreground="{StaticResource Cyan}"/>
+            <TextBlock Text="{Binding State}" HorizontalAlignment="Right" FontFamily="Cascadia Mono" Foreground="{StaticResource TextMuted}"/>
+          </DockPanel>
+          <controls:KnowledgeGraphControl x:Name="Graph" Grid.Row="1" Margin="10"/>
         </Grid>
       </Border>
 
-      <Border Grid.Column="2" Style="{StaticResource Card}">
-        <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
-          <TextBlock Text="PLANO / CONTEXTO" FontFamily="Cascadia Mono" FontSize="11" Foreground="{StaticResource Cyan}"/>
-          <StackPanel Grid.Row="1" Margin="0,14,0,0">
-            <TextBlock Text="Hoje" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <ItemsControl ItemsSource="{Binding Tasks}"><ItemsControl.ItemTemplate><DataTemplate>
-              <Border Background="#08182A" CornerRadius="8" Padding="10" Margin="0,4"><StackPanel><TextBlock Text="{Binding Title}" TextWrapping="Wrap"/><TextBlock Text="{Binding DueAt}" FontSize="10" Foreground="{StaticResource TextMuted}"/></StackPanel></Border>
-            </DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-            <TextBlock Text="Próximas ações aparecem aqui usando dados reais do Core." TextWrapping="Wrap" Foreground="{StaticResource TextMuted}" Margin="0,16,0,0"/>
-          </StackPanel>
+      <Border x:Name="ContextDrawer" Grid.Column="2" Style="{StaticResource Card}" Width="360" Visibility="Collapsed">
+        <Grid>
+          <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
+          <DockPanel>
+            <TextBlock Text="{Binding ContextTitle}" FontSize="19" FontWeight="SemiBold"/>
+            <Button Content="×" Width="34" Padding="5" HorizontalAlignment="Right" Click="CloseContext_Click"/>
+          </DockPanel>
+          <TextBlock Grid.Row="1" Text="{Binding ContextSummary}" TextWrapping="Wrap" Foreground="{StaticResource TextSecondary}" Margin="0,14,0,10"/>
+          <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding ContextItems}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Background="#08182A" CornerRadius="9" Padding="11" Margin="0,4">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                      <TextBlock Text="{Binding Detail}" Foreground="{StaticResource TextMuted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
         </Grid>
       </Border>
     </Grid>
 
     <Border Grid.Row="2" Style="{StaticResource Card}" Margin="16,0,16,16">
-      <Grid><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-        <TextBlock Text="NATY" FontFamily="Cascadia Mono" Foreground="{StaticResource Cyan}"/>
-        <TextBlock Grid.Row="1" Text="{Binding Response}" TextWrapping="Wrap" FontSize="15" Margin="0,10" Foreground="{StaticResource TextSecondary}"/>
-        <Grid Grid.Row="2"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-          <TextBox x:Name="CommandBox" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" Background="#071426" Foreground="{StaticResource TextPrimary}"
-                   BorderBrush="{StaticResource Border}" Padding="13,10" FontSize="14" KeyDown="CommandBox_KeyDown"/>
-          <Button Grid.Column="1" Content="◉" Margin="10,0,0,0" ToolTip="Abrir HUD" Click="Listen_Click"/>
-          <Button Grid.Column="2" Content="Enviar" Margin="8,0,0,0" Background="#123B5A" Click="Send_Click"/>
+      <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <ScrollViewer Height="58" VerticalScrollBarVisibility="Auto" Margin="2,0,2,10">
+          <TextBlock Text="{Binding Response}" TextWrapping="Wrap" FontSize="14" Foreground="{StaticResource TextSecondary}"/>
+        </ScrollViewer>
+        <Grid Grid.Row="1">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+          <Button Content="＋" ToolTip="Anexar" IsEnabled="False" Margin="0,0,8,0"/>
+          <TextBox x:Name="CommandBox" Grid.Column="1" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
+                   Background="#071426" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource Border}"
+                   Padding="13,10" FontSize="14" KeyDown="CommandBox_KeyDown"/>
+          <Button Grid.Column="2" Content="◉" Margin="10,0,0,0" ToolTip="Microfone / HUD" Click="Listen_Click"/>
+          <Button Grid.Column="3" Content="Enviar" Margin="8,0,0,0" Background="#123B5A" Click="Send_Click"/>
         </Grid>
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,12,0,0">
-          <Button Content="Plano" Tag="qual é meu plano de hoje?" Click="Shortcut_Click" Margin="0,0,7,0"/>
-          <Button Content="Compras" Tag="abre minha lista de compras" Click="Shortcut_Click" Margin="0,0,7,0"/>
-          <Button Content="Pesquisar" Tag="pesquisa " Click="Shortcut_Click" Margin="0,0,7,0"/>
-          <Button Content="Gmail" Tag="mostra emails não lidos" Click="Shortcut_Click" Margin="0,0,7,0"/>
-          <Button Content="Spotify" Tag="abre Spotify" Click="Shortcut_Click" Margin="0,0,7,0"/>
-          <Button Content="Obsidian" Tag="o que você sabe sobre meu projeto?" Click="Shortcut_Click"/>
-        </StackPanel>
       </Grid>
     </Border>
   </Grid>

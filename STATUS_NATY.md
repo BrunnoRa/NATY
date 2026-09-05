@@ -18,6 +18,25 @@
 - Benchmark curto: árvore Desktop + Core = 183,83 MiB RSS e 0,0% CPU instantânea após 3 s.
 - A auditoria original das seções seguintes permanece como histórico do estado anterior às correções deste checkpoint.
 
+## CHECKPOINT — CICLO FUNCIONAL
+
+BLOCO: respostas, Router, pesquisa e Obsidian
+status: **CONCLUÍDO**
+feito: fallback genérico removido; classificação funcional; ToolResult estruturado; pesquisa real com fontes; retrieval FTS5/grafo com resposta sem invenção.
+testes: pesquisa web real retornou 5 fontes; Obsidian real respondeu para NATY Agent e informou corretamente que não existe memória sobre TCC.
+
+BLOCO: tarefas, planejamento, lembretes e automações
+status: **CONCLUÍDO**
+feito: criação/conclusão de tarefas, resumo de hoje/amanhã, lembretes com horário por extenso e automações ONE_TIME, DAILY e WEEKLY persistidas e executadas pelo scheduler.
+testes: fluxos end-to-end cobertos em banco temporário, incluindo disparo único anti-repetição.
+
+BLOCO: launcher, mídia, IPC e front
+status: **CONCLUÍDO**
+feito: launcher allowlist, mídia por teclas Windows, payload IPC com data/sources/ui/error, Brain Mode, ContextDrawer lazy e até 6 nós reais destacados.
+testes: Named Pipe com resposta estruturada e shutdown limpo; WPF 0 erros/0 avisos; capturas artifacts/naty-functional-brain.png e artifacts/naty-functional-context.png.
+
+Pendente: validação humana do microfone/Whisper, credenciais Google e confirmação manual em aplicativos instalados das ações Spotify/mídia.
+
 ## 1. Estado geral
 
 - A base de código da **NATY V2.1.0** está presente e versionada em Git.
