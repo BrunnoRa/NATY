@@ -15,6 +15,47 @@ from voice.whisper_cpp import WhisperCppSTT
 from voice.piper_tts import PiperTTS
 
 
+def normalize_for_speech(text: str) -> str:
+    """Remove formatação visual que deixa a leitura neural artificial."""
+    value = re.sub(r"\[([^\]]+)\]\([^\)]+\)", r"\1", text)
+    value = re.sub(r"```.*?```", " trecho de código ", value, flags=re.DOTALL)
+    value = re.sub(r"[`*_#>]", "", value)
+    value = re.sub(r"(?m)^\s*[-•]\s+", "", value)
+    return re.sub(r"\s+", " ", value).strip()
+
+
+class SpeechChunker:
+    """Mantém respostas comuns em um bloco e divide apenas textos longos."""
+
+    def __init__(self, max_chars: int = 560):
+        self.max_chars = max(240, max_chars)
+
+    def chunks(self, text: str) -> list[str]:
+        normalized = normalize_for_speech(text)
+        if not normalized:
+            return []
+        if len(normalized) <= self.max_chars:
+            return [normalized]
+        units = [item.strip() for item in re.split(r"(?<=[.!?…])\s+", normalized) if item.strip()]
+        result: list[str] = []
+        current = ""
+        for unit in units:
+            if len(unit) > self.max_chars:
+                if current:
+                    result.append(current)
+                    current = ""
+                result.extend(unit[index:index + self.max_chars].strip()
+                              for index in range(0, len(unit), self.max_chars))
+            elif current and len(current) + len(unit) + 1 > self.max_chars:
+                result.append(current)
+                current = unit
+            else:
+                current = f"{current} {unit}".strip()
+        if current:
+            result.append(current)
+        return result
+
+
 @dataclass(slots=True)
 class VoiceSession:
     followup_seconds: int = 8
@@ -71,22 +112,16 @@ class VoiceSessionManager:
         self._lock = threading.Lock()
         self._speech_lock = threading.Lock()
         self._speech_generation = 0
-
-    @staticmethod
-    def sentences(text: str) -> list[str]:
-        return [part.strip() for part in re.split(r"(?<=[.!?…])\s+", text.strip()) if part.strip()]
+        self._speech_chunker = SpeechChunker()
 
     def _speak_response(self, text: str) -> None:
         with self._speech_lock:
             self._speech_generation += 1
             generation = self._speech_generation
-        for sentence in self.sentences(text):
+        for chunk in self._speech_chunker.chunks(text):
             with self._speech_lock:
                 if generation != self._speech_generation: return
-            self.tts.speak(sentence)
-            pause_ms = max(0, min(1000, int(getattr(self.settings, "piper_pause_ms", 120))))
-            if pause_ms and self.settings.tts_provider == "piper":
-                time.sleep(pause_ms / 1000)
+            self.tts.speak(chunk)
 
     def _listen_once(self, timeout: float, on_level=None, on_state=None) -> str:
         parameters = inspect.signature(self.stt.listen_once).parameters

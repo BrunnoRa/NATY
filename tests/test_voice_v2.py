@@ -124,14 +124,26 @@ class VoiceV2Tests(TempDatabaseTest):
         self.assertEqual(result, output)
         self.assertGreater(output.stat().st_size, 44)
 
-    def test_response_is_queued_by_complete_sentence(self):
+    def test_short_response_uses_one_natural_speech_block(self):
         class TTS:
             def __init__(self): self.spoken = []
             def speak(self, text): self.spoken.append(text)
         tts = TTS()
         manager = VoiceSessionManager(self.settings(tts_enabled=True, tts_provider="sapi"), stt=object(), tts=tts)
         manager._speak_response("Primeira frase. Segunda! Terceira?")
-        self.assertEqual(tts.spoken, ["Primeira frase.", "Segunda!", "Terceira?"])
+        self.assertEqual(tts.spoken, ["Primeira frase. Segunda! Terceira?"])
+
+    def test_long_response_uses_large_chunks_without_artificial_sleep(self):
+        class TTS:
+            def __init__(self): self.spoken = []
+            def speak(self, text): self.spoken.append(text)
+        tts = TTS()
+        manager = VoiceSessionManager(self.settings(tts_enabled=True, tts_provider="piper"), stt=object(), tts=tts)
+        with patch("voice.manager.time.sleep") as sleeping:
+            manager._speak_response("Uma frase natural e longa. " * 40)
+        self.assertGreater(len(tts.spoken), 1)
+        self.assertTrue(all(len(chunk) >= 240 for chunk in tts.spoken[:-1]))
+        sleeping.assert_not_called()
 
     def test_automatic_gain_amplifies_low_voice_without_amplifying_silence(self):
         processor = AutomaticGain(max_gain=12, enabled=True)
