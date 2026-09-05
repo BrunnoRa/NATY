@@ -1,18 +1,24 @@
 # CURRENT HANDOFF
 
-Branch: `feat/naty-v3-hybrid`
+Branch: `main`
 
-Commit: `HEAD` — `feat: add diagnostics and acceptance flow`
+HEAD: fechamento NATY V3.1 (o commit deste `CURRENT HANDOFF`).
 
-Último bloco concluído: Blocos 9 e 10 — diagnóstico interno, aceite guiado e benchmark final.
+Concluído nesta sessão:
+- voz natural sem pausa artificial por sentença e preferência feminina SAPI pt-BR;
+- System Context/diagnóstico, memória temporal, briefing diário e Workspaces seguros;
+- ProactivityManager com cooldown/quiet hours e Notification Center da NATY;
+- contexto do aplicativo ativo, Clipboard explícito e assistente de arquivos com raízes limitadas/Lixeira;
+- SkillRegistry com metadados reais, autoconhecimento, SkillGap confirmado, sugestões e destaques do Brain;
+- catálogo Obsidian gerenciado, versão/pacote 3.1.0, ZIP e instalador.
 
-Testes: suíte completa com 134 testes (133 aprovados + 1 skip DPAPI esperado); `compileall`; build WPF 0 avisos/0 erros; `dotnet test`; smokes do Core e do `Naty.exe` empacotados, incluindo diagnóstico e modo de precisão; `git diff --check` verde; nenhum processo órfão.
+Testes: 174 executados, 173 aprovados + 1 skip DPAPI esperado; `compileall` verde; WPF 0 avisos/0 erros; `dotnet test` executado; Core empacotado/Named Pipe smoke verde; `git diff --check` verde. RAM híbrida idle: 192,93 MiB antes; 209,14 MiB depois.
 
-Funcional: diagnóstico real de Desktop/Core/Pipe/SQLite/Obsidian/Whisper/Piper/Google/Sync/Hotkey, comando “Naty, como você está?”, cópia de detalhes técnicos, roteiro de aceite e teste guiado isolado de 10 frases com transcrição, WER e latência; ZIP e `NatySetup.exe` finais gerados; benchmark da árvore híbrida registrado.
+Obsidian: 22 arquivos/blocos criados/atualizados somente em `Obsidian Vault\Naty`; indexação incremental 22 alterados/32 preservados; 0 Markdown inválido; FTS5 e KnowledgeGraph validados.
 
-Não validado: instalação/desinstalação humana via wizard; 10 frases faladas no microfone; hotkey após reinicialização; OneDrive entre dois PCs físicos; OAuth Google; ações manuais de tray, Spotify e handoff ChatGPT.
+Não validado: Screen Context V1; wizard humano de instalação/desinstalação; microfone/Whisper falado; voz Piper feminina pt-BR (nenhum modelo feminino oficial compatível foi confirmado); OAuth Google; Sync em dois PCs; pesquisa web do executável empacotado (benchmark ficou sem acesso externo); ações manuais de foco de janela/Clipboard/Lixeira.
 
-Próximo: instalar `installer/NatySetup.exe`, executar `MANUAL_ACCEPTANCE.md` e publicar os commits locais no remoto.
+Próximo: implementar Screen Context V1 sob comando explícito e executar o aceite humano do instalador `installer/NatySetup.exe`.
 
 ---
 
