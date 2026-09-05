@@ -156,6 +156,7 @@ class CoreRequestHandler:
             "notifications": self.assistant.drain_notifications() if hasattr(self.assistant, "drain_notifications") else [],
             "sync": self.assistant.sync.summary() if getattr(self.assistant, "sync", None) else {"status": "offline", "pending": 0, "conflicts": 0},
             "ui_settings": {"close_to_tray": getattr(self.assistant.settings, "close_to_tray", True)},
+            "suggestions": self.assistant.skills.suggestions(4) if hasattr(self.assistant, "skills") else [],
         }
 
     def _execute_text(self, text: str) -> dict:

@@ -98,6 +98,10 @@ public partial class MainWindow : Window
                 _closeToTray = closeToTray.GetBoolean();
             _viewModel.Ram = metrics.TryGetProperty("ram_mib", out var ram) && ram.ValueKind == JsonValueKind.Number ? $"{ram.GetDouble():0.0} MiB" : "—";
             _viewModel.Cpu = metrics.TryGetProperty("cpu_percent", out var cpu) && cpu.ValueKind == JsonValueKind.Number ? $"{cpu.GetDouble():0.0}%" : "—";
+            _viewModel.Suggestions.Clear();
+            if (payload.TryGetProperty("suggestions", out var suggestions) && suggestions.ValueKind == JsonValueKind.Array)
+                foreach (var suggestion in suggestions.EnumerateArray())
+                    if (suggestion.ValueKind == JsonValueKind.String) _viewModel.Suggestions.Add(suggestion.GetString() ?? "");
             SetGraph(payload.GetProperty("graph"));
             if (payload.TryGetProperty("notifications", out var notifications) && notifications.ValueKind == JsonValueKind.Array)
             {
@@ -308,6 +312,10 @@ public partial class MainWindow : Window
             {
                 AddObjectArray(data, "files", "name", "modified_at", "Arquivo");
             }
+            else if (panel == "capabilities")
+            {
+                AddObjectArray(data, "skills", "name", "description", "Skill");
+            }
         }
         else if (panel == "shopping" && data.ValueKind == JsonValueKind.Array)
         {
@@ -359,6 +367,8 @@ public partial class MainWindow : Window
     private async void CommandBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (e.Key == Key.Enter) { e.Handled = true; var text = _viewModel.Input; _viewModel.Input = ""; await SendTextAsync(text); } }
     private async void Listen_Click(object sender, RoutedEventArgs e) => await StartVoiceAsync();
     private void Shortcut_Click(object sender, RoutedEventArgs e) { if (sender is FrameworkElement { Tag: string text }) { _viewModel.Input = text; CommandBox.Focus(); CommandBox.CaretIndex = CommandBox.Text.Length; } }
+    private void CommandBox_GotFocus(object sender, RoutedEventArgs e) => SuggestionsPanel.Visibility = string.IsNullOrWhiteSpace(CommandBox.Text) ? Visibility.Visible : Visibility.Collapsed;
+    private void CommandBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) { if (SuggestionsPanel is not null) SuggestionsPanel.Visibility = string.IsNullOrWhiteSpace(CommandBox.Text) ? Visibility.Visible : Visibility.Collapsed; }
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) { if (e.ClickCount == 2) ToggleMaximize(); else DragMove(); }
     private void Minimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
     private void Maximize_Click(object sender, RoutedEventArgs e) => ToggleMaximize();

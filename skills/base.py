@@ -12,6 +12,13 @@ class SkillInfo:
     description: str
     intents: tuple[str, ...]
     permissions: tuple[str, ...]
+    category: str = "CORE"
+    aliases: tuple[str, ...] = ()
+    requires_network: bool = False
+    requires_confirmation: bool = False
+    requires_credentials: bool = False
+    ui_panel: str = "none"
+    examples: tuple[str, ...] = ()
 
 
 class Skill(ABC):

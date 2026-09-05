@@ -29,6 +29,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public ObservableCollection<ProviderStatus> Providers { get; } = [];
     public ObservableCollection<TaskItem> Tasks { get; } = [];
     public ObservableCollection<ContextItem> ContextItems { get; } = [];
+    public ObservableCollection<string> Suggestions { get; } = [];
 
     public event PropertyChangedEventHandler? PropertyChanged;
     private void Set<T>(ref T field, T value, [CallerMemberName] string? name = null)

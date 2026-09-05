@@ -102,7 +102,8 @@ class RuleParser:
             return Intent(intents.TEMPORAL_RECALL, {"kind": "last_decision"}, raw_text=raw)
         if plain in {"sim", "confirmo", "pode", "pode fazer"}: return Intent(intents.CONFIRM, raw_text=raw)
         if plain in {"nao", "cancelar", "cancela"}: return Intent(intents.CANCEL, raw_text=raw)
-        if re.search(r"\b(ajuda|comandos|o que voce faz)\b", plain): return Intent(intents.HELP, raw_text=raw)
+        if re.search(r"\b(ajuda|comandos|o que voce (?:faz|sabe fazer)|mostra tudo|voce consegue|voce esta conectada ao google|seu whisper|qual versao voce|quais skills)\b", plain):
+            return Intent(intents.HELP, {"query": plain, "show_all": "mostra tudo" in plain}, raw_text=raw)
         if re.search(r"\b(desconecta|desconectar|remove|remover)\b.*\bgoogle\b", plain): return Intent(intents.DISCONNECT_GOOGLE, raw_text=raw)
         if re.search(r"\b(conecta|conectar|autoriza|autorizar)\b.*\bgoogle\b", plain): return Intent(intents.CONNECT_GOOGLE, raw_text=raw)
         if re.search(r"\b(envia|enviar|mande|mandar)\b.*\brascunho\b", plain): return Intent(intents.GMAIL_SEND, raw_text=raw)

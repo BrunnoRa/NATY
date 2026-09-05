@@ -58,6 +58,7 @@ from tools.notifications import NotificationTool
 from tools.active_context import ActiveContextTool
 from tools.clipboard import ClipboardTool
 from tools.safe_files import SafeFileAssistant
+from tools.self_knowledge import SelfKnowledgeTool
 from delegation.external_ai import ChatGPTWebProvider, ExternalResultImporter
 from learning.manager import LearningManager
 from sync.manager import SyncManager
@@ -178,6 +179,7 @@ class NatyAssistant:
         )
         self.state = AppState.IDLE
         self.diagnostics = DiagnosticService(self)
+        self.tool_router.self_knowledge = SelfKnowledgeTool(self.skills, self)
 
     def update_active_context(self, value: dict | None) -> None:
         self.context.update_active_app(value)

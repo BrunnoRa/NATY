@@ -22,6 +22,7 @@ class ToolRouter:
         self.active_context = None
         self.clipboard = None
         self.safe_files = None
+        self.self_knowledge = None
         self.pending_confirmation: tuple[str, dict] | None = None
 
     def execute(self, intent: Intent) -> ToolResult:
@@ -137,5 +138,5 @@ class ToolRouter:
         if name == intents.SAVE_RESEARCH: return self.research.save_last_to_obsidian()
         if name == intents.OPEN_RESEARCH_BROWSER: return self.research.open_last_in_browser()
         if name == intents.HELP:
-            return ToolResult(True, "Posso criar e acompanhar tarefas, lembretes, listas, projetos e notas; planejar seu tempo; recuperar contexto do Obsidian; pesquisar na internet; e, se você autorizar, consultar Gmail e Google Calendar.")
+            return self.self_knowledge.answer(e.get("query", intent.raw_text), bool(e.get("show_all"))) if self.self_knowledge else ToolResult(False, "Catálogo de Skills indisponível.")
         return ToolResult(False, "Não entendi esse pedido. Tente, por exemplo: 'cria tarefa entregar relatório sexta'.")

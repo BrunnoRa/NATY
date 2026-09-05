@@ -107,16 +107,20 @@
 
     <Border Grid.Row="2" Style="{StaticResource Card}" Margin="16,0,16,16">
       <Grid>
-        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
         <ScrollViewer Height="58" VerticalScrollBarVisibility="Auto" Margin="2,0,2,10">
           <TextBlock Text="{Binding Response}" TextWrapping="Wrap" FontSize="14" Foreground="{StaticResource TextSecondary}"/>
         </ScrollViewer>
-        <Grid Grid.Row="1">
+        <ItemsControl x:Name="SuggestionsPanel" Grid.Row="1" ItemsSource="{Binding Suggestions}" Margin="2,0,2,8">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding}" Tag="{Binding}" Click="Shortcut_Click" Padding="9,4" Margin="0,0,7,0" FontSize="11"/></DataTemplate></ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Grid Grid.Row="2">
           <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
           <Button Content="＋" ToolTip="Anexar" IsEnabled="False" Margin="0,0,8,0"/>
           <TextBox x:Name="CommandBox" Grid.Column="1" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}"
                    Background="#071426" Foreground="{StaticResource TextPrimary}" BorderBrush="{StaticResource Border}"
-                   Padding="13,10" FontSize="14" KeyDown="CommandBox_KeyDown"/>
+                   Padding="13,10" FontSize="14" KeyDown="CommandBox_KeyDown" GotFocus="CommandBox_GotFocus" TextChanged="CommandBox_TextChanged"/>
           <Button Grid.Column="2" Content="◉" Margin="10,0,0,0" ToolTip="Microfone / HUD" Click="Listen_Click"/>
           <Button Grid.Column="3" Content="Enviar" Margin="8,0,0,0" Background="#123B5A" Click="Send_Click"/>
         </Grid>

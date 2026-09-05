@@ -13,11 +13,11 @@ VSVersionInfo(
     StringFileInfo([StringTable('041604B0', [
       StringStruct('CompanyName', 'NATY'),
       StringStruct('FileDescription', 'Naty - agente pessoal local'),
-      StringStruct('FileVersion', '2.1.0'),
+      StringStruct('FileVersion', '3.1.0'),
       StringStruct('InternalName', 'Naty'),
       StringStruct('OriginalFilename', 'Naty.exe'),
       StringStruct('ProductName', 'NATY'),
-      StringStruct('ProductVersion', '2.1.0')
+      StringStruct('ProductVersion', '3.1.0')
     ])]),
     VarFileInfo([VarStruct('Translation', [1046, 1200])])
   ]
