@@ -7,9 +7,11 @@ import subprocess
 import sys
 import zipfile
 
+from version import __version__
+
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "3.0.0"
+VERSION = __version__
 DIST = ROOT / "dist"
 HYBRID = DIST / "NatyHybrid"
 
