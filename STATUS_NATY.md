@@ -16,9 +16,9 @@ Testes: 174 executados, 173 aprovados + 1 skip DPAPI esperado; `compileall` verd
 
 Obsidian: 22 arquivos/blocos criados/atualizados somente em `Obsidian Vault\Naty`; indexação incremental 22 alterados/32 preservados; 0 Markdown inválido; FTS5 e KnowledgeGraph validados.
 
-Não validado: Screen Context V1; wizard humano de instalação/desinstalação; microfone/Whisper falado; voz Piper feminina pt-BR (nenhum modelo feminino oficial compatível foi confirmado); OAuth Google; Sync em dois PCs; pesquisa web do executável empacotado (benchmark ficou sem acesso externo); ações manuais de foco de janela/Clipboard/Lixeira.
+Não validado: Screen Context V1; wizard humano de instalação/desinstalação; microfone/Whisper falado; voz Piper feminina pt-BR (nenhum modelo feminino oficial compatível foi confirmado); OAuth Google; Sync em dois PCs; pesquisa web do executável empacotado (benchmark ficou sem acesso externo); ações manuais de foco de janela/Clipboard/Lixeira; push bloqueado porque a visibilidade/propriedade de `origin` não pôde ser verificada pelo ambiente.
 
-Próximo: implementar Screen Context V1 sob comando explícito e executar o aceite humano do instalador `installer/NatySetup.exe`.
+Próximo: confirmar o destino GitHub e executar `git push origin main`; depois implementar Screen Context V1 sob comando explícito e executar o aceite humano do instalador `installer/NatySetup.exe`.
 
 ---
 
